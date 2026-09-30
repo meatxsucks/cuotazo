@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Nombres de secretos de Secrets Manager en floci (fpc/...), no valores"
+regexes = ['''^fpc/[a-z_/<>]+$''']

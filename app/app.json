@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Cuotazo",
+    "slug": "cuotazo",
+    "scheme": "cuotazo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "cl.cuotazo.app"
+    },
+    "android": {
+      "package": "cl.cuotazo.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f766e",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "name": "Cuotazo",
+      "shortName": "Cuotazo",
+      "lang": "es-CL",
+      "themeColor": "#0f766e",
+      "backgroundColor": "#f4f5f1"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

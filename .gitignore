@@ -1,0 +1,49 @@
+# Secretos y configuración local
+.env
+.env.*
+*.env
+!.env.example
+!*.env.example
+*.pem
+*.key
+
+# Notas personales y configuración de herramientas locales
+spec/privado/
+sql/bodega/privado/
+CLAUDE.md
+.claude/
+.mcp.json
+
+# Datos locales (extracciones, estados de cuenta, exportaciones)
+/datos/
+/data/
+*.pdf
+*.xlsx
+*.xls
+*.csv
+*.har
+
+# Capturas de depuración (las de docs/capturas son del modo demo y sí se publican)
+screenshots/
+debug/
+*.trace.zip
+
+# Terraform
+*.tfstate*
+.terraform/
+infra/terraform/.build/
+.build/
+
+# Dependencias y artefactos
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+.svelte-kit/
+.vercel/
+dist/
+build/
+.expo/
+
+# Sistema
+.DS_Store

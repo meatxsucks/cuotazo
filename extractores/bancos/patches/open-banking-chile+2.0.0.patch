@@ -1,0 +1,92 @@
+diff --git a/node_modules/open-banking-chile/dist/index.cjs b/node_modules/open-banking-chile/dist/index.cjs
+index ef9f3a0..717b4f7 100644
+--- a/node_modules/open-banking-chile/dist/index.cjs
++++ b/node_modules/open-banking-chile/dist/index.cjs
+@@ -3356,7 +3356,7 @@ async function login2(page, rut, password, debugLog, doScreenshots, progress) {
+   await screenshotIfEnabled(page, "02-login-form", doScreenshots, debugLog);
+   debugLog.push("3. Filling RUT...");
+   progress("Ingresando RUT...");
+-  const rutInput = page.getByRole("textbox", { name: "RUT", exact: true }).or(page.locator('input[name*="rut"], input[id*="rut"], input[placeholder*="RUT"]').first());
++  const rutInput = await page.locator("input#document").count() ? page.locator("input#document").first() : page.getByRole("textbox", { name: "RUT", exact: true }).or(page.locator('input[name*="rut"], input[id*="rut"], input[placeholder*="RUT"]').first());
+   try {
+     await rutInput.fill(rut, { timeout: 1e4 });
+   } catch {
+@@ -3364,8 +3364,12 @@ async function login2(page, rut, password, debugLog, doScreenshots, progress) {
+     return { success: false, error: "No se encontr\xF3 campo de RUT", screenshot: ss };
+   }
+   await delay(1e3);
+-  await page.keyboard.press("Enter");
+-  debugLog.push("  Pressed Enter to advance to password step");
++  if (await page.locator('input[type="password"]').first().isVisible().catch(() => false)) {
++    debugLog.push("  Password field already visible, not pressing Enter");
++  } else {
++    await page.keyboard.press("Enter");
++    debugLog.push("  Pressed Enter to advance to password step");
++  }
+   await delay(2e3);
+   debugLog.push("4. Filling password...");
+   progress("Ingresando clave...");
+@@ -3391,7 +3395,7 @@ async function login2(page, rut, password, debugLog, doScreenshots, progress) {
+   await screenshotIfEnabled(page, "03-after-login", doScreenshots, debugLog);
+   try {
+     const closeBtn = page.getByRole("button", { name: "cerrar", exact: true });
+-    if (await closeBtn.isVisible({ timeout: 2e3 }).catch(() => false)) await closeBtn.click();
++    if (await closeBtn.isVisible({ timeout: 2e3 }).catch(() => false)) await closeBtn.click(); const modalMsg = page.locator("#modal-message"); await delay(1e3); debugLog.push("  MODAL visible=" + await modalMsg.isVisible().catch(() => false) + " texto=" + (await modalMsg.innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 300) + " botones=" + JSON.stringify(await modalMsg.locator("button, a, [role='button'], [class*='close' i]").evaluateAll((els) => els.map((e) => (e.innerText || e.getAttribute("aria-label") || e.className).toString().slice(0, 40))).catch(() => []))); if (await modalMsg.locator("button, a, [role='button']").first().isVisible({ timeout: 2e3 }).catch(() => false)) { const botonModal = modalMsg.locator("button, a, [role='button']").filter({ hasText: /cerrar|entendido|aceptar|continuar|ok|m[aá]s tarde|omitir|ahora no/i }).first(); if (await botonModal.isVisible({ timeout: 1e3 }).catch(() => false)) await botonModal.click(); else await page.keyboard.press("Escape"); await delay(1500); }
+   } catch {
+   }
+   try {
+@@ -4021,7 +4025,7 @@ async function scrapeFalabella(options) {
+     await delay(2e3);
+     try {
+       const closeBtn = page.getByRole("button", { name: "cerrar", exact: true });
+-      if (await closeBtn.isVisible({ timeout: 2e3 }).catch(() => false)) await closeBtn.click();
++      if (await closeBtn.isVisible({ timeout: 2e3 }).catch(() => false)) await closeBtn.click(); const modalMsg = page.locator("#modal-message"); await delay(1e3); debugLog.push("  MODAL visible=" + await modalMsg.isVisible().catch(() => false) + " texto=" + (await modalMsg.innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 300) + " botones=" + JSON.stringify(await modalMsg.locator("button, a, [role='button'], [class*='close' i]").evaluateAll((els) => els.map((e) => (e.innerText || e.getAttribute("aria-label") || e.className).toString().slice(0, 40))).catch(() => []))); if (await modalMsg.locator("button, a, [role='button']").first().isVisible({ timeout: 2e3 }).catch(() => false)) { const botonModal = modalMsg.locator("button, a, [role='button']").filter({ hasText: /cerrar|entendido|aceptar|continuar|ok|m[aá]s tarde|omitir|ahora no/i }).first(); if (await botonModal.isVisible({ timeout: 1e3 }).catch(() => false)) await botonModal.click(); else await page.keyboard.press("Escape"); await delay(1500); }
+     } catch {
+     }
+     const { creditCard } = await scrapeCreditCard(page, debugLog, doScreenshots, progress, owner);
+diff --git a/node_modules/open-banking-chile/dist/index.js b/node_modules/open-banking-chile/dist/index.js
+index b21e6e4..21baec6 100644
+--- a/node_modules/open-banking-chile/dist/index.js
++++ b/node_modules/open-banking-chile/dist/index.js
+@@ -3305,7 +3305,7 @@ async function login2(page, rut, password, debugLog, doScreenshots, progress) {
+   await screenshotIfEnabled(page, "02-login-form", doScreenshots, debugLog);
+   debugLog.push("3. Filling RUT...");
+   progress("Ingresando RUT...");
+-  const rutInput = page.getByRole("textbox", { name: "RUT", exact: true }).or(page.locator('input[name*="rut"], input[id*="rut"], input[placeholder*="RUT"]').first());
++  const rutInput = await page.locator("input#document").count() ? page.locator("input#document").first() : page.getByRole("textbox", { name: "RUT", exact: true }).or(page.locator('input[name*="rut"], input[id*="rut"], input[placeholder*="RUT"]').first());
+   try {
+     await rutInput.fill(rut, { timeout: 1e4 });
+   } catch {
+@@ -3313,8 +3313,12 @@ async function login2(page, rut, password, debugLog, doScreenshots, progress) {
+     return { success: false, error: "No se encontr\xF3 campo de RUT", screenshot: ss };
+   }
+   await delay(1e3);
+-  await page.keyboard.press("Enter");
+-  debugLog.push("  Pressed Enter to advance to password step");
++  if (await page.locator('input[type="password"]').first().isVisible().catch(() => false)) {
++    debugLog.push("  Password field already visible, not pressing Enter");
++  } else {
++    await page.keyboard.press("Enter");
++    debugLog.push("  Pressed Enter to advance to password step");
++  }
+   await delay(2e3);
+   debugLog.push("4. Filling password...");
+   progress("Ingresando clave...");
+@@ -3340,7 +3344,7 @@ async function login2(page, rut, password, debugLog, doScreenshots, progress) {
+   await screenshotIfEnabled(page, "03-after-login", doScreenshots, debugLog);
+   try {
+     const closeBtn = page.getByRole("button", { name: "cerrar", exact: true });
+-    if (await closeBtn.isVisible({ timeout: 2e3 }).catch(() => false)) await closeBtn.click();
++    if (await closeBtn.isVisible({ timeout: 2e3 }).catch(() => false)) await closeBtn.click(); const modalMsg = page.locator("#modal-message"); await delay(1e3); debugLog.push("  MODAL visible=" + await modalMsg.isVisible().catch(() => false) + " texto=" + (await modalMsg.innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 300) + " botones=" + JSON.stringify(await modalMsg.locator("button, a, [role='button'], [class*='close' i]").evaluateAll((els) => els.map((e) => (e.innerText || e.getAttribute("aria-label") || e.className).toString().slice(0, 40))).catch(() => []))); if (await modalMsg.locator("button, a, [role='button']").first().isVisible({ timeout: 2e3 }).catch(() => false)) { const botonModal = modalMsg.locator("button, a, [role='button']").filter({ hasText: /cerrar|entendido|aceptar|continuar|ok|m[aá]s tarde|omitir|ahora no/i }).first(); if (await botonModal.isVisible({ timeout: 1e3 }).catch(() => false)) await botonModal.click(); else await page.keyboard.press("Escape"); await delay(1500); }
+   } catch {
+   }
+   try {
+@@ -3970,7 +3974,7 @@ async function scrapeFalabella(options) {
+     await delay(2e3);
+     try {
+       const closeBtn = page.getByRole("button", { name: "cerrar", exact: true });
+-      if (await closeBtn.isVisible({ timeout: 2e3 }).catch(() => false)) await closeBtn.click();
++      if (await closeBtn.isVisible({ timeout: 2e3 }).catch(() => false)) await closeBtn.click(); const modalMsg = page.locator("#modal-message"); await delay(1e3); debugLog.push("  MODAL visible=" + await modalMsg.isVisible().catch(() => false) + " texto=" + (await modalMsg.innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 300) + " botones=" + JSON.stringify(await modalMsg.locator("button, a, [role='button'], [class*='close' i]").evaluateAll((els) => els.map((e) => (e.innerText || e.getAttribute("aria-label") || e.className).toString().slice(0, 40))).catch(() => []))); if (await modalMsg.locator("button, a, [role='button']").first().isVisible({ timeout: 2e3 }).catch(() => false)) { const botonModal = modalMsg.locator("button, a, [role='button']").filter({ hasText: /cerrar|entendido|aceptar|continuar|ok|m[aá]s tarde|omitir|ahora no/i }).first(); if (await botonModal.isVisible({ timeout: 1e3 }).catch(() => false)) await botonModal.click(); else await page.keyboard.press("Escape"); await delay(1500); }
+     } catch {
+     }
+     const { creditCard } = await scrapeCreditCard(page, debugLog, doScreenshots, progress, owner);

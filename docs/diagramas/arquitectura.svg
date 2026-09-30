@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 520" width="1240" height="520" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Arquitectura de Cuotazo</title>
+  <defs>
+    <marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .zona{fill:#f8fafc;stroke:#cbd5e1;stroke-width:1.5;rx:14}
+      .zona-floci{fill:#fff7ed;stroke:#fdba74;stroke-width:1.5}
+      .zona-nube{fill:#ecfdf5;stroke:#6ee7b7;stroke-width:1.5}
+      .caja{fill:#ffffff;stroke:#334155;stroke-width:1.3}
+      .t-zona{font-size:13px;font-weight:700;fill:#334155;letter-spacing:.04em}
+      .t{font-size:13.5px;font-weight:600;fill:#0f172a}
+      .s{font-size:11.5px;fill:#475569}
+      .l{stroke:#475569;stroke-width:1.6;fill:none;marker-end:url(#f)}
+      .l2{stroke:#475569;stroke-width:1.4;fill:none;stroke-dasharray:5 4;marker-end:url(#f)}
+    </style>
+  </defs>
+  <rect width="1240" height="520" fill="#ffffff"/>
+
+  <!-- Zonas -->
+  <rect class="zona" x="16" y="40" width="190" height="440" rx="14"/>
+  <text class="t-zona" x="30" y="64">FUENTES</text>
+  <rect class="zona" x="222" y="40" width="226" height="440" rx="14"/>
+  <text class="t-zona" x="236" y="64">EQUIPO LOCAL</text>
+  <rect class="zona-floci" x="464" y="40" width="360" height="440" rx="14"/>
+  <text class="t-zona" x="478" y="64">FLOCI · AWS EMULADO (TERRAFORM)</text>
+  <rect class="zona-nube" x="840" y="40" width="384" height="440" rx="14"/>
+  <text class="t-zona" x="854" y="64">NUBE</text>
+
+  <!-- Fuentes -->
+  <rect class="caja" x="32" y="90" width="158" height="96" rx="10"/>
+  <text class="t" x="44" y="114">Banca en línea</text>
+  <text class="s" x="44" y="134">Santander · BCI</text>
+  <text class="s" x="44" y="150">Banco Falabella (CMR)</text>
+  <text class="s" x="44" y="170">cuentas, tarjetas, créditos</text>
+
+  <!-- Local -->
+  <rect class="caja" x="238" y="90" width="194" height="112" rx="10"/>
+  <text class="t" x="250" y="114">Extractores</text>
+  <text class="s" x="250" y="134">Node + Playwright</text>
+  <text class="s" x="250" y="150">open-banking-chile + parches</text>
+  <text class="s" x="250" y="166">solo lectura, bloqueo ante</text>
+  <text class="s" x="250" y="182">rechazo de clave</text>
+
+  <rect class="caja" x="238" y="226" width="194" height="60" rx="10"/>
+  <text class="t" x="250" y="250">Llavero de macOS</text>
+  <text class="s" x="250" y="270">RUT y claves (nunca .env)</text>
+
+  <rect class="caja" x="238" y="380" width="194" height="76" rx="10"/>
+  <text class="t" x="250" y="404">Datos en ~/.fpc</text>
+  <text class="s" x="250" y="424">fuera de carpetas</text>
+  <text class="s" x="250" y="440">sincronizadas (700)</text>
+
+  <!-- floci -->
+  <rect class="caja" x="480" y="90" width="160" height="96" rx="10"/>
+  <text class="t" x="492" y="114">S3 fpc-raw</text>
+  <text class="s" x="492" y="134">JSON tal cual,</text>
+  <text class="s" x="492" y="150">usuario= / fecha_carga=</text>
+  <text class="s" x="492" y="170">inmutable</text>
+
+  <rect class="caja" x="656" y="90" width="152" height="96" rx="10"/>
+  <text class="t" x="668" y="114">Jobs Glue</text>
+  <text class="s" x="668" y="134">normalizar, cuotas 0/N,</text>
+  <text class="s" x="668" y="150">seudonimizar, reglas,</text>
+  <text class="s" x="668" y="170">cuadraturas, UF</text>
+
+  <rect class="caja" x="656" y="226" width="152" height="110" rx="10"/>
+  <text class="t" x="668" y="250">Bodega Postgres</text>
+  <text class="s" x="668" y="270">RDS en floci</text>
+  <text class="s" x="668" y="290">stage → dw</text>
+  <text class="s" x="668" y="306">→ presentacion</text>
+  <text class="s" x="668" y="322">(contrato)</text>
+
+  <rect class="caja" x="656" y="380" width="152" height="76" rx="10"/>
+  <text class="t" x="668" y="404">Lambda publicar</text>
+  <text class="s" x="668" y="424">1 transacción</text>
+  <text class="s" x="668" y="440">por usuario</text>
+
+  <!-- Nube -->
+  <rect class="caja" x="856" y="226" width="170" height="110" rx="10"/>
+  <text class="t" x="868" y="250">Supabase</text>
+  <text class="s" x="868" y="270">esquema finanzas</text>
+  <text class="s" x="868" y="286">RLS por usuario</text>
+  <text class="s" x="868" y="302">Auth (Google, enlace)</text>
+  <text class="s" x="868" y="318">vistas de alertas y plan</text>
+
+  <rect class="caja" x="1044" y="170" width="164" height="76" rx="10"/>
+  <text class="t" x="1056" y="194">Web SvelteKit</text>
+  <text class="s" x="1056" y="214">Vercel · modo demo</text>
+  <text class="s" x="1056" y="230">sin variables</text>
+
+  <rect class="caja" x="1044" y="300" width="164" height="76" rx="10"/>
+  <text class="t" x="1056" y="324">App Expo</text>
+  <text class="s" x="1056" y="344">React Native · web</text>
+  <text class="s" x="1056" y="360">(en migración)</text>
+
+  <!-- Flechas -->
+  <path class="l" d="M190,138 H236"/>
+  <path class="l2" d="M335,226 V204"/>
+  <path class="l" d="M432,138 H478"/>
+  <path class="l" d="M640,138 H654"/>
+  <path class="l" d="M732,186 V224"/>
+  <path class="l" d="M732,336 V378"/>
+  <path class="l" d="M808,418 H940 V338"/>
+  <path class="l" d="M1026,262 C1036,240 1036,214 1042,210"/>
+  <path class="l" d="M1026,300 C1036,318 1036,334 1042,338"/>
+
+  <text class="s" x="16" y="506">Flechas punteadas: lectura de credenciales y fuente opcional. Nada se ejecuta contra AWS real.</text>
+</svg>
