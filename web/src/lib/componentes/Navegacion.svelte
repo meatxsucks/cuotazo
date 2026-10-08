@@ -9,11 +9,13 @@
 		{ href: '/mes', texto: 'Mes', corto: 'Mes', icono: 'plan' },
 		{ href: '/deudas', texto: 'Deudas', corto: 'Deudas', icono: 'deudas' },
 		{ href: '/carro', texto: 'Carro', corto: 'Carro', icono: 'sobre' },
+		{ href: '/contabilidad', texto: 'Contabilidad', corto: 'Contabilidad', icono: 'banco' },
 		{ href: '/movimientos', texto: 'Movimientos', corto: 'Movimientos', icono: 'movimientos' },
 		{ href: '/pagos-fijos', texto: 'Pagos fijos', corto: 'Fijos', icono: 'fijos' },
 		{ href: '/anotar', texto: 'Sobres', corto: 'Sobres', icono: 'presupuestos' },
 		{ href: '/diario', texto: 'Diario', corto: 'Diario', icono: 'diario' },
-		{ href: '/categorias', texto: 'Categorías', corto: 'Categorías', icono: 'categorias' }
+		{ href: '/categorias', texto: 'Categorías', corto: 'Categorías', icono: 'categorias' },
+		{ href: '/hogar', texto: 'Hogar', corto: 'Hogar', icono: 'personas' }
 	];
 	const PRINCIPALES = ITEMS.slice(0, 3);
 	const EXTRA = ITEMS.slice(4);

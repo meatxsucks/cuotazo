@@ -1,8 +1,11 @@
 // Datos sintéticos con la forma del contrato; nunca datos reales
 import type {
+	Actualizacion,
 	Anotacion,
 	Compra,
 	DeudaCuotaMes,
+	Hogar,
+	ProductoCompartido,
 	DeudaManual,
 	PagoFijo,
 	Sobre,
@@ -49,9 +52,13 @@ export interface DatosDemo {
 	/** ciclo|clave → pagado, marcas a mano del modo demo */
 	marcas: Record<string, boolean>;
 	compras: Compra[];
+	hogar: Hogar;
+	compartidos: ProductoCompartido[];
+	actualizacion: Actualizacion | null;
 }
 
 const USUARIO_ID = '00000000-0000-4000-8000-000000000001';
+const PAREJA_ID = '00000000-0000-4000-8000-000000000002';
 
 interface Prod {
 	banco: string;
@@ -435,7 +442,17 @@ export function generarDatosDemo(hoy = hoyChile()): DatosDemo {
 		sobres: sobresDemo(),
 		anotaciones: anotacionesDemo(hoy),
 		marcas: {},
-		compras: comprasDemo(hoy)
+		compras: comprasDemo(hoy),
+		hogar: {
+			rol: 'titular',
+			hogar_id: idDemo(10, 1),
+			yo: { usuario_id: USUARIO_ID, nombre: 'Titular Demo' },
+			titular: { usuario_id: USUARIO_ID, nombre: 'Titular Demo' },
+			miembros: [{ usuario_id: PAREJA_ID, nombre: 'Pareja Demo' }],
+			invitaciones: []
+		},
+		compartidos: [CC, CUENTA_VISTA, VISA].map((p) => ({ banco: p.banco, producto_nombre: p.producto_nombre })),
+		actualizacion: null
 	};
 }
 
@@ -515,6 +532,7 @@ function comprasDemo(hoy: string): Compra[] {
 			abierta: false,
 			creada: `${sumarDias(hoy, -2)}T11:00:00-03:00`,
 			cerrada: `${sumarDias(hoy, -2)}T11:40:00-03:00`,
+			creado_por: PAREJA_ID,
 			items: [
 				item(1, 'Leche', 6, 1_090),
 				item(2, 'Pan', 1, 2_400),

@@ -181,7 +181,7 @@ export const fuenteDemo: FuenteDatos = {
 	},
 	async crearCompra(sobreId, lugar) {
 		const id = crypto.randomUUID();
-		datos().compras.unshift({ compra_id: id, sobre_id: sobreId, lugar, abierta: true, creada: new Date().toISOString(), cerrada: null, items: [] });
+		datos().compras.unshift({ compra_id: id, sobre_id: sobreId, lugar, abierta: true, creada: new Date().toISOString(), cerrada: null, creado_por: null, items: [] });
 		return id;
 	},
 	async agregarItem(compraId, item) {
@@ -204,8 +204,98 @@ export const fuenteDemo: FuenteDatos = {
 	},
 	async itemsFrecuentes() {
 		return frecuentes(datos().compras.flatMap((c) => c.items));
+	},
+	async miHogar() {
+		return copia(datos().hogar);
+	},
+	async aceptarInvitacion() {
+		return false;
+	},
+	async invitar(email) {
+		const h = datos().hogar;
+		if (!h.invitaciones.includes(email)) h.invitaciones.push(email);
+	},
+	async cancelarInvitacion(email) {
+		const h = datos().hogar;
+		h.invitaciones = h.invitaciones.filter((e) => e !== email);
+	},
+	async quitarMiembro(id) {
+		const h = datos().hogar;
+		h.miembros = h.miembros.filter((m) => m.usuario_id !== id);
+	},
+	async compartidos() {
+		return copia(datos().compartidos);
+	},
+	async guardarCompartidos(lista) {
+		datos().compartidos = copia(lista);
+	},
+	async ultimaActualizacion() {
+		return copia(datos().actualizacion);
+	},
+	// En demo la actualización termina al instante
+	async pedirActualizacion() {
+		const ahora = new Date().toISOString();
+		const pasos = { santander: 'ok', falabella: 'ok', bci: 'ok', carga: 'ok', publicacion: 'ok' };
+		datos().actualizacion = { solicitud_id: crypto.randomUUID(), origen: 'app', estado: 'ok', pasos, detalle: null, creada: ahora, iniciada: ahora, terminada: ahora };
+	},
+	async balanceActual() {
+		return balanceDemo(datos());
+	},
+	async fotosBalance() {
+		const d = datos();
+		const hoy = hoyChile();
+		const base = balanceDemo(d);
+		const activos = base.filter((p) => p.lado === 'activo').reduce((t, p) => t + p.monto, 0);
+		const pasivos = base.filter((p) => p.lado === 'pasivo').reduce((t, p) => t + p.monto, 0);
+		return [6, 5, 4, 3, 2, 1, 0].map((n) => ({ fecha: sumarDias(hoy, -n * 5), activos: Math.round(activos * (1 - n * 0.04)), pasivos: Math.round(pasivos * (1 + n * 0.01)) }));
+	},
+	async resultadoMensual(desde) {
+		const filas = new Map<string, { mes: string; tipo_flujo: 'ingreso' | 'gasto' | 'interes_comision'; categoria: string; monto: number; cantidad: number }>();
+		for (const m of datos().movimientos) {
+			if (!['ingreso', 'gasto', 'interes_comision'].includes(m.tipo_flujo) || m.fecha_imputacion < desde || m.fecha_imputacion > hoyChile()) continue;
+			const mes = m.fecha_imputacion.slice(0, 8) + '01';
+			const clave = `${mes}|${m.tipo_flujo}|${m.categoria}`;
+			const f = filas.get(clave) ?? { mes, tipo_flujo: m.tipo_flujo as 'ingreso' | 'gasto' | 'interes_comision', categoria: m.categoria, monto: 0, cantidad: 0 };
+			f.monto += m.tipo_flujo === 'ingreso' ? m.monto : -m.monto;
+			f.cantidad++;
+			filas.set(clave, f);
+		}
+		return [...filas.values()];
+	},
+	async libro(banco, producto, limite) {
+		const d = datos();
+		const movs = d.movimientos
+			.filter((m) => m.banco === banco && m.producto_nombre === producto)
+			.sort((a, b) => b.fecha.localeCompare(a.fecha) || b.movimiento_id.localeCompare(a.movimiento_id));
+		let saldo = d.saldos.find((s) => s.banco === banco && s.producto_nombre === producto)?.saldo_disponible ?? null;
+		return movs.slice(0, limite).map((m) => {
+			const fila = { movimiento_id: m.movimiento_id, fecha: m.fecha, glosa: m.glosa, comercio: m.comercio, categoria: m.categoria, estado: m.estado, abono: Math.max(m.monto, 0), cargo: Math.max(-m.monto, 0), saldo };
+			if (saldo != null) saldo -= m.monto;
+			return fila;
+		});
+	},
+	async conciliacion() {
+		const hoy = hoyChile();
+		return [
+			{ ambito: 'carga', sujeto: 'banco_demo · cuenta', detalle: '48 movimientos del banco, 0 duplicados descartados, 48 en la app', cuadra: true, revisado: hoy },
+			{ ambito: 'carga', sujeto: 'banco_demo · tarjeta', detalle: '62 movimientos del banco, 2 duplicados descartados, 60 en la app', cuadra: true, revisado: hoy },
+			{ ambito: 'tarjeta', sujeto: 'Visa Oro Banco Demo', detalle: 'Estado del último cierre: saldo anterior menos 31 movimientos da el monto facturado', cuadra: true, revisado: hoy },
+			{ ambito: 'tarjeta', sujeto: 'Mastercard Tienda Demo', detalle: 'El banco no informa saldo anterior, no se puede cuadrar', cuadra: null, revisado: hoy },
+			{ ambito: 'saldo', sujeto: 'Cuenta Corriente Banco Demo · banco_demo', detalle: 'Saldo anterior + movimientos difiere en 1.200 del saldo del banco', cuadra: false, revisado: hoy }
+		];
 	}
 };
+
+function balanceDemo(d: DatosDemo) {
+	const activos = d.saldos.map((s) => ({ lado: 'activo' as const, tipo: 'cuenta', entidad: s.banco, nombre: s.producto_nombre, monto: s.saldo_disponible }));
+	const bancos = d.deudas
+		.filter((x) => (x.saldo_deuda_clp ?? 0) > 0)
+		.map((x) => ({ lado: 'pasivo' as const, tipo: x.tipo, entidad: x.banco, nombre: x.nombre, monto: Math.round(x.saldo_deuda_clp ?? 0) }));
+	const manuales = d.deudasManuales
+		.filter((x) => x.activo && x.saldo > 0)
+		.map((x) => ({ lado: 'pasivo' as const, tipo: x.tipo, entidad: x.acreedor ?? 'anotada', nombre: x.nombre, monto: x.saldo }));
+	return [...activos, ...bancos, ...manuales];
+}
 
 function compraDemo(id: string) {
 	const c = datos().compras.find((x) => x.compra_id === id);

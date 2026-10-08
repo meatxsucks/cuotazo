@@ -2,6 +2,7 @@
 	import '@fontsource-variable/inter';
 	import '../app.css';
 	import { navigating, page } from '$app/state';
+	import Actualizar from '$lib/componentes/Actualizar.svelte';
 	import Navegacion from '$lib/componentes/Navegacion.svelte';
 	import Vacio from '$lib/componentes/Vacio.svelte';
 	import { cssCategorias } from '$lib/categorias';
@@ -33,11 +34,11 @@
 	<div class="app">
 		<Navegacion modoDemo={data.modoDemo} email={data.email} nombre={data.nombre} />
 		<main class:cargando={!!navigating.to}>
-			{#if data.modoDemo || data.actualizado}
-				<p class="estado-datos">
+			{#if data.vinculado}
+				<div class="estado-datos">
 					{#if data.modoDemo}<span class="insignia aviso demo">Demo · datos sintéticos</span>{/if}
-					{#if data.actualizado}<span>Actualizado {textoActualizado(data.actualizado)}</span>{/if}
-				</p>
+					<Actualizar texto={data.actualizado ? `Actualizado ${textoActualizado(data.actualizado)}` : null} />
+				</div>
 			{/if}
 			{#if data.vinculado}
 				{@render children()}

@@ -8,6 +8,7 @@
 	import { clp, fecha, porcentaje } from '$lib/formato';
 
 	let { data, form } = $props();
+	const puedeEditar = $derived(data.rol !== 'miembro');
 
 	const TIPOS_MANUAL = [
 		{ id: 'tarjeta', nombre: 'Tarjeta' },
@@ -115,7 +116,7 @@
 	<section class="tarjeta">
 		<div class="tarjeta-cabecera">
 			<h2>A mano</h2>
-			{#if !data.sinTablas && editando !== 'nueva'}
+			{#if !data.sinTablas && editando !== 'nueva' && puedeEditar}
 				<button class="boton" type="button" onclick={() => (editando = 'nueva')}><Icono nombre="mas_simple" tam={16} /> Agregar deuda</button>
 			{/if}
 		</div>
@@ -140,9 +141,11 @@
 								</span>
 							</span>
 							<span class="num">{clp(m.saldo)}</span>
-							<button class="boton fantasma icono" type="button" aria-label="Editar {m.nombre}" onclick={() => (editando = editando === m.deuda_manual_id ? null : m.deuda_manual_id)}>
-								<Icono nombre="editar" tam={17} />
-							</button>
+							{#if puedeEditar}
+								<button class="boton fantasma icono" type="button" aria-label="Editar {m.nombre}" onclick={() => (editando = editando === m.deuda_manual_id ? null : m.deuda_manual_id)}>
+									<Icono nombre="editar" tam={17} />
+								</button>
+							{/if}
 						</div>
 						{#if editando === m.deuda_manual_id}
 							{@render formularioDeuda(m)}
@@ -172,6 +175,7 @@
 							<BarraAlerta porcentaje={pct} umbrales={[80, 100]} estado={pct! >= 100 ? 'excedido' : pct! >= 80 ? 'aviso' : 'ok'} etiqueta="Uso de {u.nombre}" compacta />
 							<p class="tenue chica">{pct! >= 100 ? `Te pasaste por ${clp(u.usado - limite)}` : `Te quedan ${clp(limite - u.usado)} este mes`}</p>
 						{/if}
+						{#if puedeEditar}
 						<form method="POST" action="?/tope" use:enhance={envio} class="form-tope">
 							<input type="hidden" name="tarjeta" value={u.clave} />
 							<span class="prefijo">
@@ -180,6 +184,7 @@
 							</span>
 							<button class="boton" type="submit" disabled={enviando}>Guardar</button>
 						</form>
+						{/if}
 					</li>
 				{/each}
 			</ul>

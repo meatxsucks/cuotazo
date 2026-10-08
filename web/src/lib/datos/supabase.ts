@@ -6,21 +6,30 @@ import type {
 	Anotacion,
 	CajaCiclo,
 	CajaResumen,
+	Actualizacion,
 	Compra,
+	Conciliacion,
 	DeudaManual,
 	DeudaProducto,
 	DeudaTodas,
+	FilaLibro,
 	FiltroMovimientos,
 	FuenteDatos,
+	Hogar,
 	LoQueViene,
 	Movimiento,
 	PagoCiclo,
 	PagoFijo,
+	PartidaBalance,
 	Producto,
+	ProductoCompartido,
+	ResultadoMes,
 	Sobre
 } from './tipos';
 
 const LOTE = 1000;
+
+const HOGAR_SOLO: Hogar = { rol: 'solo', hogar_id: null, yo: null, titular: null, miembros: [], invitaciones: [] };
 
 type Respuesta<T> = PromiseLike<{ data: T[] | null; error: { message: string; code?: string } | null; count?: number | null }>;
 
@@ -90,8 +99,11 @@ export function crearFuenteSupabase(supabase: SupabaseClient): FuenteDatos {
 	}
 
 	const fuente: FuenteDatos = {
+		// Dueño de los datos del hogar: uno mismo, o el titular si se es miembro
 		async usuario() {
-			const { data, error } = await db.from('usuario').select('usuario_id, nombre_visible').limit(1).maybeSingle();
+			const { data: titular } = await db.rpc('titular_de_mi_hogar');
+			const consulta = db.from('usuario').select('usuario_id, nombre_visible');
+			const { data, error } = await (titular ? consulta.eq('usuario_id', titular) : consulta.limit(1)).maybeSingle();
 			if (error) throw new Error(error.message);
 			usuarioId = data?.usuario_id ?? null;
 			return data;
@@ -163,14 +175,20 @@ export function crearFuenteSupabase(supabase: SupabaseClient): FuenteDatos {
 			);
 		},
 		async creditoMes(mes) {
-			const { data, error } = await db.from('credito_mes').select('*').eq('mes', mes).maybeSingle();
+			// En un hogar las vistas traen una fila por persona: se lee la del titular
+			const id = await idOpcional();
+			if (!id) return null;
+			const { data, error } = await db.from('credito_mes').select('*').eq('mes', mes).eq('usuario_id', id).maybeSingle();
 			revisar(error);
 			return data;
 		},
 		async perfil() {
+			const id = await idOpcional();
+			if (!id) return null;
 			const { data, error } = await db
 				.from('perfil')
 				.select('ingreso_mensual_neto, dia_pago, meta_ahorro_mensual, tope_carga_cuotas_pct, actualizado')
+				.eq('usuario_id', id)
 				.maybeSingle();
 			revisar(error);
 			return data;
@@ -184,7 +202,9 @@ export function crearFuenteSupabase(supabase: SupabaseClient): FuenteDatos {
 			revisar(error);
 		},
 		async planAjuste() {
-			return todas((a, b) => db.from('plan_ajuste').select('*').order('mes').range(a, b));
+			const id = await idOpcional();
+			if (!id) return [];
+			return todas((a, b) => db.from('plan_ajuste').select('*').eq('usuario_id', id).order('mes').range(a, b));
 		},
 		async planCategorias() {
 			return todas((a, b) => db.from('plan_ajuste_categoria').select('*').order('mes').order('promedio', { ascending: false }).range(a, b));
@@ -307,6 +327,103 @@ export function crearFuenteSupabase(supabase: SupabaseClient): FuenteDatos {
 			const { error } = await db.from('compra').delete().eq('compra_id', compraId).eq('abierta', true);
 			revisar(error);
 		},
+		async miHogar() {
+			const { data, error } = await db.rpc('mi_hogar');
+			if (error) {
+				if (falta(error)) return { ...HOGAR_SOLO };
+				throw new Error(error.message);
+			}
+			const h = data as Partial<Hogar> | null;
+			return { ...HOGAR_SOLO, ...h, miembros: h?.miembros ?? [], invitaciones: h?.invitaciones ?? [] };
+		},
+		async aceptarInvitacion() {
+			const { data, error } = await db.rpc('aceptar_invitacion');
+			if (error) return false;
+			usuarioId = null;
+			return data === true;
+		},
+		async invitar(email) {
+			const { error } = await db.rpc('invitar_hogar', { p_email: email });
+			revisar(error);
+		},
+		async cancelarInvitacion(email) {
+			const { error } = await db.rpc('cancelar_invitacion', { p_email: email });
+			revisar(error);
+		},
+		async quitarMiembro(id) {
+			const { error } = await db.rpc('quitar_miembro', { p_usuario: id });
+			revisar(error);
+		},
+		async compartidos() {
+			return opcional<ProductoCompartido>((a, b) => db.from('producto_compartido').select('banco, producto_nombre').range(a, b));
+		},
+		async guardarCompartidos(lista) {
+			const { error } = await db.from('producto_compartido').delete().not('banco', 'is', null);
+			revisar(error);
+			if (!lista.length) return;
+			const { error: e2 } = await db.from('producto_compartido').insert(lista);
+			revisar(e2);
+		},
+		async ultimaActualizacion() {
+			const filas = await opcional<Record<string, unknown>>((a, b) =>
+				db.from('solicitud_actualizacion').select('*').order('creada', { ascending: false }).range(a, Math.min(b, a))
+			);
+			const r = filas?.[0];
+			return r ? ({ ...(r as unknown as Actualizacion), pasos: (r.pasos as Record<string, string>) ?? {} } as Actualizacion) : null;
+		},
+		async pedirActualizacion() {
+			const { error } = await db.rpc('pedir_actualizacion');
+			if (error && /hace menos de 10 minutos/.test(error.message)) throw new ErrorDuplicado(error.message);
+			revisar(error);
+		},
+		async balanceActual() {
+			const filas = await opcional<Record<string, unknown>>((a, b) => db.from('balance_actual').select('lado, tipo, entidad, nombre, monto').range(a, b));
+			return filas?.map((r) => ({ ...(r as unknown as PartidaBalance), monto: num(r.monto) ?? 0 })) ?? null;
+		},
+		async fotosBalance() {
+			const filas = await opcional<Record<string, unknown>>((a, b) => db.from('foto_balance').select('fecha, activos, pasivos').order('fecha').range(a, b));
+			return filas?.map((r) => ({ fecha: String(r.fecha), activos: num(r.activos) ?? 0, pasivos: num(r.pasivos) ?? 0 })) ?? null;
+		},
+		async resultadoMensual(desde) {
+			const filas = await opcional<Record<string, unknown>>((a, b) => db.from('resultado_mensual').select('mes, tipo_flujo, categoria, monto, cantidad').gte('mes', desde).range(a, b));
+			return filas?.map((r) => ({ ...(r as unknown as ResultadoMes), monto: num(r.monto) ?? 0, cantidad: num(r.cantidad) ?? 0 })) ?? null;
+		},
+		async libro(banco, producto, limite) {
+			const { data, error } = await db
+				.from('libro')
+				.select('movimiento_id, fecha, glosa, comercio, categoria, estado, abono, cargo, saldo')
+				.eq('banco', banco)
+				.eq('producto_nombre', producto)
+				.order('fecha', { ascending: false })
+				.order('movimiento_id', { ascending: false })
+				.limit(limite);
+			if (error) {
+				if (falta(error)) return null;
+				throw new Error(error.message);
+			}
+			return (data ?? []).map((r) => ({ ...(r as unknown as FilaLibro), abono: num(r.abono) ?? 0, cargo: num(r.cargo) ?? 0, saldo: num(r.saldo) }));
+		},
+		async conciliacion() {
+			const [banco, saldos] = await Promise.all([
+				opcional<Conciliacion>((a, b) => db.from('conciliacion').select('ambito, sujeto, detalle, cuadra, revisado').range(a, b)),
+				opcional<Record<string, unknown>>((a, b) => db.from('conciliacion_saldos').select('*').order('hasta', { ascending: false }).range(a, b))
+			]);
+			if (!banco) return null;
+			const vistos = new Set<string>();
+			const deSaldos: Conciliacion[] = (saldos ?? [])
+				.filter((r) => !vistos.has(`${r.banco}|${r.nombre}`) && vistos.add(`${r.banco}|${r.nombre}`))
+				.map((r) => {
+					const diferencia = num(r.diferencia) ?? 0;
+					return {
+						ambito: 'saldo',
+						sujeto: `${r.nombre} · ${r.banco}`,
+						detalle: `Saldo del ${r.desde} + movimientos hasta el ${r.hasta} ${diferencia === 0 ? '= saldo del banco' : `difiere en ${diferencia} del saldo del banco`}`,
+						cuadra: diferencia === 0,
+						revisado: String(r.hasta)
+					};
+				});
+			return [...banco, ...deSaldos];
+		},
 		async itemsFrecuentes() {
 			const filas =
 				(await opcional<Record<string, unknown>>((a, b) =>
@@ -315,6 +432,10 @@ export function crearFuenteSupabase(supabase: SupabaseClient): FuenteDatos {
 			return frecuentes(filas.map((r) => ({ nombre: String(r.nombre), precio: num(r.precio) ?? 0 })));
 		}
 	};
+
+	async function idOpcional(): Promise<string | null> {
+		return usuarioId ?? (await fuente.usuario())?.usuario_id ?? null;
+	}
 
 	async function miId(): Promise<string> {
 		const id = usuarioId ?? (await fuente.usuario())?.usuario_id;
@@ -367,6 +488,7 @@ function normalizarCompra(r: Record<string, unknown>): Compra {
 		abierta: r.abierta === true,
 		creada: String(r.creada),
 		cerrada: texto(r.cerrada),
+		creado_por: texto(r.creado_por),
 		items: items
 			.map((i) => ({ item_id: String(i.item_id), nombre: String(i.nombre), cantidad: num(i.cantidad) ?? 1, precio: num(i.precio) ?? 0, creado: String(i.creado) }))
 			.sort((a, b) => a.creado.localeCompare(b.creado))

@@ -21,7 +21,9 @@ Cada fase termina con algo que se puede demostrar. No se pasa de fase sin cumpli
 - [x] Falabella: extractor propio (`productos/falabella.mjs`) con cuenta, CMR (facturado, no facturado, estados anteriores, cuotas, cupos, proyección) y crédito
 - [x] BCI: extractor propio (`productos/bci.mjs`) con cuentas corrientes y Prima
 - [x] Santander: extractor propio (`productos/santander.mjs`) con cuenta, tarjetas (por facturar y último estado), línea e hipotecario
-- [ ] Ejecución programada (launchd cada 1–2 horas): extraer → cargar bodega → publicar en Supabase
+- [x] Ejecución programada y a pedido: agente de launchd + botón Actualizar ([[ADR-011_Actualizacion_Y_Contabilidad]])
+- [ ] Falabella: login trabado el 2026-10-07 aunque el sitio cargó; revisar con el navegador visible
+- [ ] Llevar el agente a un equipo siempre encendido (Raspberry o mini PC) con las claves fuera del Llavero
 - [ ] Santander: estados de cuenta anteriores (el sitio ofrece más de un año), más de 50 movimientos de cuenta, cuentas de ahorro; un estado de tarjeta no cuadra con su cabecera
 - [ ] BCI: historia más allá de los últimos 50 movimientos
 - [ ] Falabella: tasa y CAE del crédito; cuota del crédito llega en 0
@@ -35,6 +37,8 @@ Cada fase termina con algo que se puede demostrar. No se pasa de fase sin cumpli
 - [x] Aplicar `0003_caja.sql` en Supabase antes de volver a invocar la Lambda de publicación
 - [x] Pantallas para pagos fijos, deudas manuales, sobres y anotaciones; Resumen con `caja_resumen` y `lo_que_viene`
 - [x] Pantalla Mes (pagos del ciclo con estado, sobres, balance y plan del día) y Carro de compras ([[ADR-009_Mes_Y_Carro]])
+- [x] Hogar compartido: invitación por correo, productos compartidos a elección, la pareja anota y marca pagos ([[ADR-010_Hogar_Compartido]])
+- [ ] Cuando un miembro conecte sus bancos: sumar ambos usuarios en Resumen y Mes
 - [ ] Detectar pagos fijos con los movimientos del banco (patrón de glosa por pago fijo) para no marcarlos a mano
 - [ ] Vincular una compra del carro con su cargo del banco (`anotacion.movimiento_id`) en vez de descontar por medio de pago
 - [ ] Quitar de la capa de datos y del modo demo lo que ya no usa ninguna pantalla (`planAjuste`, `planCategorias`, `liberacionCuotas`, `estadoPresupuestos`)
@@ -46,13 +50,15 @@ Cada fase termina con algo que se puede demostrar. No se pasa de fase sin cumpli
 ## Backlog
 - [ ] Extractor de cuentas de servicios al estilo de los bancos (portales de luz, agua, gas, internet, celular) o lectura de boletas en Gmail; reemplaza los pagos fijos manuales
 - [ ] Notificaciones de alertas (correo o push; canal y consentimiento por decidir)
+- [ ] Nombre visible editable por cada persona del hogar (hoy sale del correo)
+- [ ] Envío de la invitación al hogar por correo (requiere SMTP propio en Supabase)
 - [ ] App móvil (exportar la versión Expo a iOS/Android)
 - [ ] Revisar si la facturación proyectada de CMR incluye compras al contado (posible doble conteo en `deuda_cuota_mes`)
 
 ## Fase 3 — Analytics y bodega
-- [ ] Glue `fpc_movimientos` y DDL dimensional con RLS por usuario
-- [ ] Carga stage + MERGE
-- **Término:** conteos cuadran entre raw, analytics y bodega; un rol de usuario no ve filas de otro.
+- [x] DDL dimensional (`sql/bodega`) y jobs estilo Glue (`glue/jobs`); el aislamiento por usuario con RLS vive en Supabase, no en la bodega local
+- [x] Carga stage + MERGE (`scripts/cargar_bodega.sh`)
+- **Término:** conteos cuadran entre raw, analytics y bodega; un rol de usuario no ve filas de otro. **Cumplido 2026-09-30:** cuadraturas OK en cada carga y RLS probada en Supabase simulando usuarios ([[ADR-010_Hogar_Compartido]]).
 
 ## Fase 4 — Falabella (CMR)
 - [ ] Confirmar si el sitio de Banco Falabella exporta movimientos CMR a Excel
@@ -63,6 +69,8 @@ Cada fase termina con algo que se puede demostrar. No se pasa de fase sin cumpli
 - **Término:** cuotas, intereses y comisiones de un estado CMR real cuadran con el PDF.
 
 ## Fase 6 — Categorización y transferencias internas
+- [x] Pagos de tarjeta y traspasos propios como `transferencia_interna` / `pago_deuda`, fuera del gasto
+- [ ] Bajar el gasto sin categoría (hoy ~17%) bajo 10% con más reglas
 - **Término:** un pago de tarjeta no aparece como gasto; menos de 10% del gasto queda sin categoría.
 
 ## Fase 7 — Análisis, alertas y bancos reales

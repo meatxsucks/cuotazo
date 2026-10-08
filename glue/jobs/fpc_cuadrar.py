@@ -12,7 +12,7 @@ from normalizar_productos import clave_compra, compras_conocidas, cuota_cero
 TABLAS = ["dw.dim_usuario", "dw.dim_producto", "dw.fact_movimiento", "dw.fact_estado_tarjeta", "dw.fact_deuda_producto",
           "dw.fact_cuota_mes", "dw.fact_saldo", "dw.indicador", "presentacion.movimiento", "presentacion.gasto_diario",
           "presentacion.resumen_mensual", "presentacion.deuda_producto", "presentacion.deuda_cuota_mes", "presentacion.saldo_cuenta",
-          "presentacion.caja_ciclo", "presentacion.caja_resumen"]
+          "presentacion.caja_ciclo", "presentacion.caja_resumen", "presentacion.conciliacion"]
 
 
 def excluido(m, conocidas=frozenset()):
@@ -41,6 +41,8 @@ def conteo_raw(j):
 args = argumentos([], {"secretoBodega": "fpc/bodega", "hostBodega": "localhost", "bucketRaw": "fpc-raw"})
 s3 = cliente("s3")
 ok_global = True
+# Cada verificación queda en dw.conciliacion para publicarla en la app
+resultados = []
 
 with conectar(args["secretoBodega"], args["hostBodega"] or None) as conexion, conexion.cursor() as cur:
     cur.execute("SELECT usuario_id, banco, corrida, fecha_carga FROM stage.corrida ORDER BY banco")
@@ -66,26 +68,35 @@ with conectar(args["secretoBodega"], args["hostBodega"] or None) as conexion, co
             ok_global &= cuadra
             print(f"{banco}/{tipo}: raw {total[tipo]}, cargables {cargables[tipo]}, stage {n_stage}, duplicados {n_dup}, "
                   f"dw {n_dw}, fechas {desde} a {hasta}, cuadra={cuadra}")
+            resultados.append((usuario, "carga", f"{banco} · {tipo}",
+                               f"{cargables[tipo]} movimientos del banco, {n_dup} duplicados descartados, {n_dw} en la app"
+                               + (f" ({desde} a {hasta})" if desde else ""), cuadra))
 
     cur.execute("""
-        SELECT e.producto_id, e.fecha_facturacion, e.cuadra,
+        SELECT e.usuario_id, coalesce(p.nombre, e.producto_id), e.fecha_facturacion, e.cuadra,
                CASE WHEN e.saldo_anterior IS NOT NULL AND e.monto_facturado IS NOT NULL
                     THEN abs(e.saldo_anterior - coalesce(sum(f.monto), 0) - e.monto_facturado) <= 1 END,
                count(f.*)
         FROM dw.fact_estado_tarjeta e
+        JOIN dw.dim_producto p ON p.usuario_id = e.usuario_id AND p.producto_id = e.producto_id
         LEFT JOIN dw.fact_movimiento f
                ON f.usuario_id = e.usuario_id AND f.producto_id = e.producto_id
               AND f.estado = 'facturado' AND f.periodo = e.fecha_facturacion
               AND f.fecha_imputacion <= e.fecha_facturacion
         WHERE e.fecha_facturacion = (SELECT max(fecha_facturacion) FROM dw.fact_estado_tarjeta x
                                      WHERE x.usuario_id = e.usuario_id AND x.producto_id = e.producto_id)
-        GROUP BY e.usuario_id, e.producto_id, e.fecha_facturacion, e.cuadra, e.saldo_anterior, e.monto_facturado
+        GROUP BY e.usuario_id, e.producto_id, p.nombre, e.fecha_facturacion, e.cuadra, e.saldo_anterior, e.monto_facturado
         ORDER BY e.producto_id
     """)
-    for producto_id, fecha_fact, cuadra_banco, cuadra_dw, n in cur.fetchall():
+    for usuario, producto_id, fecha_fact, cuadra_banco, cuadra_dw, n in cur.fetchall():
         if cuadra_dw is None:
             print(f"tarjeta {producto_id} estado {fecha_fact}: {n} movimientos; sin saldo_anterior en el estado, no evaluable")
+            resultados.append((usuario, "tarjeta", producto_id,
+                               f"Estado del {fecha_fact:%d-%m-%Y}: {n} movimientos; el banco no informa saldo anterior, no se puede cuadrar", None))
             continue
+        resultados.append((usuario, "tarjeta", producto_id,
+                           f"Estado del {fecha_fact:%d-%m-%Y}: saldo anterior menos {n} movimientos "
+                           + ("da el monto facturado" if cuadra_dw else "no da el monto facturado"), bool(cuadra_dw)))
         ok_global &= cuadra_dw
         print(f"tarjeta {producto_id} estado {fecha_fact}: {n} movimientos; saldo_anterior - suma(movimientos) = monto_facturado (±1): "
               f"{cuadra_dw}; cuadratura de cabecera del extractor: {cuadra_banco}")
@@ -135,6 +146,18 @@ with conectar(args["secretoBodega"], args["hostBodega"] or None) as conexion, co
           f"{n_ciclo} ciclos, caja_ciclo cuadra: {ok_ciclo}; caja_resumen.neto cuadra: {ok_resumen}; "
           f"entradas y salidas >= 0: {ok_signo}; filas con saldo_hoy (ciclo en curso): {n_actual}; "
           f"grupos y financiamiento con línea válidos: {ok_grupos}; pagos de tarjeta financiados con línea: {n_financiados}")
+
+    cur.execute("SELECT usuario_id FROM dw.dim_usuario")
+    for (usuario,) in cur.fetchall():
+        resultados.append((usuario, "caja", "ciclos de sueldo",
+                           f"{n_cuenta_ciclo} cuenta-ciclo y {n_ciclo} ciclos: entradas menos salidas = suma de movimientos", ok_caja))
+
+    cur.execute("DELETE FROM dw.conciliacion")
+    cur.executemany(
+        "INSERT INTO dw.conciliacion (usuario_id, ambito, sujeto, detalle, cuadra) VALUES (%s, %s, %s, %s, %s) "
+        "ON CONFLICT (usuario_id, ambito, sujeto) DO UPDATE SET detalle = EXCLUDED.detalle, cuadra = EXCLUDED.cuadra",
+        resultados,
+    )
 
     for tabla in TABLAS:
         cur.execute(f"SELECT count(*) FROM {tabla}")

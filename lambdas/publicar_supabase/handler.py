@@ -35,6 +35,7 @@ TABLAS = {
         "comprometido_antes_sueldo", "disponible_para_vivir", "proximo_sueldo", "datos_completos", "financiado_con_linea",
         "monto_financiado_linea",
     ],
+    "conciliacion": ["usuario_id", "ambito", "sujeto", "detalle", "cuadra", "revisado"],
 }
 
 secretos = boto3.client("secretsmanager")

@@ -320,6 +320,16 @@ CREATE TABLE IF NOT EXISTS dw.indicador (
     PRIMARY KEY (indicador, fecha)
 );
 
+CREATE TABLE IF NOT EXISTS dw.conciliacion (
+    usuario_id UUID NOT NULL REFERENCES dw.dim_usuario,
+    ambito     TEXT NOT NULL CHECK (ambito IN ('carga', 'tarjeta', 'caja')),
+    sujeto     TEXT NOT NULL,
+    detalle    TEXT NOT NULL,
+    cuadra     BOOLEAN,
+    revisado   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (usuario_id, ambito, sujeto)
+);
+
 CREATE OR REPLACE VIEW dw.uf_vigente AS
 SELECT valor, fecha
 FROM dw.indicador
@@ -705,3 +715,7 @@ LEFT JOIN totales t ON t.usuario_id = c.usuario_id AND t.ciclo = c.ciclo
 LEFT JOIN saldo s ON s.usuario_id = c.usuario_id
 LEFT JOIN proximo p ON p.usuario_id = c.usuario_id
 LEFT JOIN comprometido m ON m.usuario_id = c.usuario_id;
+
+CREATE OR REPLACE VIEW presentacion.conciliacion AS
+SELECT usuario_id, ambito, sujeto, detalle, cuadra, revisado
+FROM dw.conciliacion;

@@ -23,44 +23,47 @@ Secretos       Llavero de macOS: credenciales bancarias · Secrets Manager de fl
 
 ## Separación por usuario
 
-- `usuario_id` interno (UUID) en raw (como partición seudónima), analytics y en toda tabla de la bodega.
-- El RUT y el nombre del usuario viven solo en `sensible/` y en `dw.dim_usuario_sensible`, fuera del esquema analítico.
-- Claves de PDF por usuario en Secrets Manager (`fpc/usuarios/<usuario_id>/...`), nunca en S3 ni en Postgres.
-- Bodega con Row Level Security: cada rol de lectura ve solo sus filas (`usuario_id = current_setting('fpc.usuario_id')`).
-- Contrapartes persona natural (quien te transfiere o a quien le transfieres) se seudonimizan como en el ADR-008 de plataforma-datos-chile: token HMAC, diccionario en `sensible/`.
+- `usuario_id` interno (UUID) en raw (partición `usuario=`), en toda tabla de la bodega y en Supabase.
+- El RUT y las claves bancarias viven solo en el Llavero de macOS (servicio `fpc`); no llegan a S3, a la bodega ni a Supabase.
+- La bodega no tiene RLS: corre en local (floci) y cada consulta filtra por `usuario_id`. El aislamiento entre personas
+  está en Supabase, con RLS en todas las tablas ([[ADR-005_Publicacion_Supabase]], [[ADR-010_Hogar_Compartido]]).
+- Contrapartes persona natural en las glosas (quien te transfiere o a quien le transfieres) se reemplazan por un
+  seudónimo estable HMAC (`Persona 3f2a`) con la clave `fpc/seudonimo`; series de 5 o más dígitos se enmascaran.
 
-## Modelo de datos (propuesta)
+## Bodega (`sql/bodega`, Postgres 16 en floci)
 
-| Tabla | Grano | Notas |
+Carga completa con `scripts/cargar_bodega.sh`: DDL → UF del día → productos (raw → `stage.*` → `MERGE` a `dw.*`) →
+categorización → cuadraturas contra los totales de cada estado de cuenta.
+
+| Objeto | Grano | Notas |
 |---|---|---|
-| `dim_usuario` | usuario | SCD 1; sin datos personales |
-| `dim_cuenta` | cuenta o tarjeta de un usuario | institución, tipo (corriente, vista, tarjeta, línea), fuente |
-| `dim_fecha` | día | estática |
-| `dim_comercio` | comercio normalizado | nombre limpio desde la glosa |
-| `dim_categoria` | categoría y subcategoría | jerárquica, catálogo global |
-| `fact_movimiento` | un movimiento | monto con signo, `tipo_flujo` (ingreso, gasto, transferencia_interna, pago_deuda, interes, comision), categoría, comercio, fuente, `id_origen` |
-| `fact_cuota` | una cuota de una compra en cuotas | compra, n° de cuota, total de cuotas, monto, mes de vencimiento |
-| `fact_estado_tarjeta` | un estado de cuenta por tarjeta y período | facturado, pagado, saldo no pagado, intereses, comisiones, avances, cupo |
-| `regla_categoria` | regla | patrón sobre glosa o comercio → categoría; `usuario_id` nulo = global |
+| `stage.corrida`, `stage.producto`, `stage.movimiento`, `stage.deuda`, `stage.cuota_mes`, `stage.saldo`, `stage.estado_tarjeta` | lo que trae una corrida del extractor | se reemplaza en cada carga |
+| `dw.dim_usuario` | usuario | alias y `dia_corte_sueldo` (25 por defecto) |
+| `dw.dim_producto` | cuenta, tarjeta, línea o crédito de un usuario | banco, tipo, nombre sin números completos |
+| `dw.dim_fecha`, `dw.dim_categoria` | día / categoría | estáticas; la categoría tiene grupo |
+| `dw.regla_categoria` | regla | patrón (con banco, tipo de producto y signo opcionales) → categoría y tipo de flujo, por prioridad; globales en `03_reglas.sql`, personales en `sql/bodega/privado/` (ignorado por git); sin regla queda `sin_categoria` |
+| `dw.fact_movimiento` | movimiento | monto con signo, `fecha_imputacion`, cuota actual y total, estado (contable, no facturado, facturado, pendiente), categoría, `tipo_flujo` |
+| `dw.fact_estado_tarjeta` | estado de cuenta por tarjeta y período | saldo anterior, facturado, mínimo, vencimiento y si cuadra con los movimientos |
+| `dw.fact_deuda_producto`, `dw.fact_cuota_mes` | deuda por producto / cuota por mes futuro | base de la deuda comprometida |
+| `dw.fact_saldo` | saldo por cuenta y fecha | |
+| `dw.indicador`, `dw.uf_vigente` | valor diario | UF para el dividendo |
+| `dw.caja_movimiento`, `dw.compromiso` | vistas de caja | ciclo de sueldo 25 → 24 ([[ADR-007_Caja_Por_Ciclo]]) |
+| `presentacion.*` | lo que se publica | contrato en [[CONTRATO_PRESENTACION]] |
 
-Vistas de análisis: gasto diario y mensual por categoría y comercio contra ingresos; deuda comprometida
-por mes futuro (suma de `fact_cuota`); intereses y comisiones por mes; flujo mensual con alerta.
+Reglas de carga que importan:
+- Compras en cuotas "0/N": si la misma compra ya aparece con la cuota 1 se omite; si no, se carga imputada al mes siguiente.
+- El sueldo pagado desde el día de corte se imputa al mes siguiente (lo financia).
+- Pagos de tarjeta y traspasos entre cuentas propias son `transferencia_interna` o `pago_deuda`, nunca gasto.
+- Si una corrida nocturna trae vacío el detalle del hipotecario, se reutiliza el último detalle bueno.
 
-## Categorización
+## Supabase y app
 
-1. **Tipo de flujo primero** (antes que la categoría): transferencias entre cuentas propias y pagos de
-   tarjeta o línea se marcan `transferencia_interna` o `pago_deuda` y se excluyen del gasto. Detección
-   por glosa (`PAGO TARJETA`, `PAGO CMR`, `TRASPASO A CTA`) y por cruce: mismo monto, ±3 días, cargo en
-   una cuenta propia y abono en otra (o pago en el estado de la tarjeta).
-2. **Reglas ordenadas por prioridad**: primero las del usuario, después las globales; patrón sobre la glosa
-   normalizada o sobre el comercio.
-3. **Sin regla** → `sin_categoria`, visible en un reporte para crear reglas nuevas.
-4. **Deduplicación entre fuentes**: una compra CMR puede llegar por correo y después por el estado de cuenta;
-   se cruza por tarjeta, monto y fecha ±2 días, y gana el estado de cuenta.
-
-Clasificación con un modelo de lenguaje: fuera del alcance inicial (ver [[DUDAS]]).
+- Supabase (esquema `finanzas`): tablas publicadas desde la bodega, tablas que edita la persona (pagos fijos, deudas
+  anotadas, sobres, anotaciones, carro, marcas de pago, perfil, hogar) y vistas `security_invoker` (`pagos_ciclo`,
+  `lo_que_viene`, `estado_sobre`, `deudas_todas`, alertas y plan). Migraciones en `supabase/migrations/`.
+- La app web está descrita en [[APP_WEB]]; cómo se corre todo, en [[OPERACION]].
 
 ## Servicios y emulación
 
-Mismos criterios que plataforma-datos-chile: floci para S3, Lambda, Secrets Manager,
-EventBridge Scheduler, RDS Postgres y MWAA; Glue ejecutado en contenedor local (floci solo emula el catálogo).
+floci para S3, Lambda, Secrets Manager, EventBridge Scheduler y RDS Postgres; los jobs estilo Glue corren como scripts
+Python locales. Nada apunta a AWS real.

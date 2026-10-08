@@ -10,6 +10,7 @@
 	import { clp, fecha } from '$lib/formato';
 
 	let { data, form } = $props();
+	const puedeEditar = $derived(data.rol !== 'miembro');
 
 	const MEDIOS: { id: MedioPago; nombre: string }[] = [
 		{ id: 'debito', nombre: 'Débito' },
@@ -193,14 +194,14 @@
 		<section class="tarjeta">
 			<div class="tarjeta-cabecera">
 				<h2>Tus sobres</h2>
-				{#if editando !== 'nuevo'}
+				{#if editando !== 'nuevo' && puedeEditar}
 					<button class="boton" type="button" onclick={() => (editando = 'nuevo')}><Icono nombre="mas_simple" tam={16} /> Nuevo sobre</button>
 				{/if}
 			</div>
 			{#if editando === 'nuevo'}
 				<FormularioSobre envio={simple} oncancelar={() => (editando = null)} />
 			{/if}
-			{#if data.sugeridos.length}
+			{#if data.sugeridos.length && puedeEditar}
 				<form method="POST" action="?/sugeridos" use:enhance={simple} class="sugeridos">
 					<p class="tenue">Sugeridos con tu promedio de gasto de los últimos 3 meses:</p>
 					{#each data.sugeridos as s (s.categoria)}
@@ -228,12 +229,14 @@
 								<span class="titulo">{s.nombre}</span>
 								<span class="tenue">{clp(s.monto)} por {s.periodo} · {s.esencial ? 'esencial' : 'respiro'}{s.activo ? '' : ' · en pausa'}</span>
 							</span>
-							<form method="POST" action="?/mover" use:enhance={simple} class="mover">
-								<input type="hidden" name="sobre_id" value={s.sobre_id} />
-								<button class="boton fantasma icono" name="direccion" value="arriba" disabled={i === 0} aria-label="Subir {s.nombre}"><Icono nombre="subida" tam={16} /></button>
-								<button class="boton fantasma icono" name="direccion" value="abajo" disabled={i === data.sobres.length - 1} aria-label="Bajar {s.nombre}"><Icono nombre="bajada" tam={16} /></button>
-							</form>
-							<button class="boton fantasma icono" type="button" aria-label="Editar {s.nombre}" onclick={() => (editando = editando === s.sobre_id ? null : s.sobre_id)}><Icono nombre="editar" tam={16} /></button>
+							{#if puedeEditar}
+								<form method="POST" action="?/mover" use:enhance={simple} class="mover">
+									<input type="hidden" name="sobre_id" value={s.sobre_id} />
+									<button class="boton fantasma icono" name="direccion" value="arriba" disabled={i === 0} aria-label="Subir {s.nombre}"><Icono nombre="subida" tam={16} /></button>
+									<button class="boton fantasma icono" name="direccion" value="abajo" disabled={i === data.sobres.length - 1} aria-label="Bajar {s.nombre}"><Icono nombre="bajada" tam={16} /></button>
+								</form>
+								<button class="boton fantasma icono" type="button" aria-label="Editar {s.nombre}" onclick={() => (editando = editando === s.sobre_id ? null : s.sobre_id)}><Icono nombre="editar" tam={16} /></button>
+							{/if}
 						</div>
 						{#if editando === s.sobre_id}
 							<FormularioSobre sobre={s} envio={simple} oncancelar={() => (editando = null)} />

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>cl.cuotazo.actualizacion</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>__RAIZ__/.venv/bin/python</string>
+		<string>__RAIZ__/scripts/trabajador_actualizacion.py</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>__RAIZ__</string>
+	<key>StartInterval</key>
+	<integer>60</integer>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>__HOME__/.fpc/logs/actualizacion.log</string>
+	<key>StandardErrorPath</key>
+	<string>__HOME__/.fpc/logs/actualizacion.log</string>
+</dict>
+</plist>

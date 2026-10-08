@@ -11,6 +11,88 @@ export interface Usuario {
 	nombre_visible: string | null;
 }
 
+export type RolHogar = 'solo' | 'titular' | 'miembro';
+
+export interface PersonaHogar {
+	usuario_id: string;
+	nombre: string | null;
+}
+
+// Hogar compartido: el titular es dueño de los datos; los miembros ven lo compartido y anotan
+export interface Hogar {
+	rol: RolHogar;
+	hogar_id: string | null;
+	yo: PersonaHogar | null;
+	titular: PersonaHogar | null;
+	miembros: PersonaHogar[];
+	/** correos invitados que aún no entran (solo los ve el titular) */
+	invitaciones: string[];
+}
+
+export type EstadoActualizacion = 'pendiente' | 'corriendo' | 'ok' | 'parcial' | 'error';
+
+// Pedido de actualización que atiende el equipo donde corren los extractores
+export interface Actualizacion {
+	solicitud_id: string;
+	origen: 'app' | 'programada';
+	estado: EstadoActualizacion;
+	/** paso → 'corriendo' | 'ok' | motivo del error (santander, falabella, bci, carga, publicacion) */
+	pasos: Record<string, string>;
+	detalle: string | null;
+	creada: string;
+	iniciada: string | null;
+	terminada: string | null;
+}
+
+export interface PartidaBalance {
+	lado: 'activo' | 'pasivo';
+	tipo: string;
+	entidad: string;
+	nombre: string;
+	monto: number;
+}
+
+export interface FotoBalance {
+	fecha: string;
+	activos: number;
+	pasivos: number;
+}
+
+export interface ResultadoMes {
+	mes: string;
+	tipo_flujo: 'ingreso' | 'gasto' | 'interes_comision';
+	categoria: string;
+	monto: number;
+	cantidad: number;
+}
+
+export interface FilaLibro {
+	movimiento_id: string;
+	fecha: string;
+	glosa: string | null;
+	comercio: string | null;
+	categoria: string;
+	estado: string;
+	abono: number;
+	cargo: number;
+	/** saldo después del movimiento; solo en cuentas */
+	saldo: number | null;
+}
+
+export interface Conciliacion {
+	ambito: 'carga' | 'tarjeta' | 'caja' | 'saldo';
+	sujeto: string;
+	detalle: string;
+	/** null = no se pudo evaluar */
+	cuadra: boolean | null;
+	revisado: string | null;
+}
+
+export interface ProductoCompartido {
+	banco: string;
+	producto_nombre: string;
+}
+
 export interface Movimiento {
 	usuario_id: string;
 	movimiento_id: string;
@@ -348,6 +430,8 @@ export interface Compra {
 	abierta: boolean;
 	creada: string;
 	cerrada: string | null;
+	/** quién abrió la compra; null en compras anteriores al hogar */
+	creado_por: string | null;
 	items: CompraItem[];
 }
 
@@ -476,4 +560,19 @@ export interface FuenteDatos {
 	cerrarCompra(compraId: string, medio: MedioPago): Promise<void>;
 	descartarCompra(compraId: string): Promise<void>;
 	itemsFrecuentes(): Promise<ItemFrecuente[]>;
+	miHogar(): Promise<Hogar>;
+	/** Si el correo con que entró tiene invitación, lo une al hogar; true si quedó vinculado */
+	aceptarInvitacion(): Promise<boolean>;
+	invitar(email: string): Promise<void>;
+	cancelarInvitacion(email: string): Promise<void>;
+	quitarMiembro(usuarioId: string): Promise<void>;
+	compartidos(): Promise<ProductoCompartido[] | null>;
+	guardarCompartidos(lista: ProductoCompartido[]): Promise<void>;
+	ultimaActualizacion(): Promise<Actualizacion | null>;
+	pedirActualizacion(): Promise<void>;
+	balanceActual(): Promise<PartidaBalance[] | null>;
+	fotosBalance(): Promise<FotoBalance[] | null>;
+	resultadoMensual(desde: string): Promise<ResultadoMes[] | null>;
+	libro(banco: string, producto: string, limite: number): Promise<FilaLibro[] | null>;
+	conciliacion(): Promise<Conciliacion[] | null>;
 }

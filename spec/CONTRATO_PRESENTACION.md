@@ -110,6 +110,18 @@ Todas con `usuario_id` por defecto `finanzas.mi_usuario_id()` y RLS de lectura y
 - `compra` (carro): compra_id, sobre_id (obligatorio, solo sobres propios), lugar (≤ 60), abierta, anotacion_id (la que crea
   `finanzas.cerrar_compra(compra, medio)` al terminar), creada, cerrada.
 - `compra_item`: item_id, compra_id (solo compras propias), nombre (≤ 60), cantidad (> 0, dos decimales), precio (≥ 0), creado.
+- `anotacion` y `compra` guardan además `creado_por` (quién del hogar la hizo).
+- `conciliacion` (publicada desde `presentacion.conciliacion`): ambito (`carga`, `tarjeta`, `caja`), sujeto, detalle, cuadra
+  (nulo = no evaluable), revisado.
+- `solicitud_actualizacion`: origen (`app`, `programada`), estado, pasos (jsonb paso → estado), detalle, creada, iniciada,
+  terminada. Se crea con `pedir_actualizacion()`; la escribe el agente del equipo.
+- `foto_balance`: fecha, activos, pasivos, detalle (jsonb de partidas); la escribe `tomar_foto_balance()`.
+- Vistas: `balance_actual`, `resultado_mensual`, `libro` (saldo corrido en cuentas) y `conciliacion_saldos`
+  ([[ADR-011_Actualizacion_Y_Contabilidad]]).
+- Hogar ([[ADR-010_Hogar_Compartido]]): `hogar` (titular_id único), `miembro_hogar` (usuario_id único), `invitacion_hogar`
+  (email en minúsculas) sin acceso directo: se usan por `mi_hogar()`, `invitar_hogar(email)`, `cancelar_invitacion(email)`,
+  `quitar_miembro(usuario)` y `aceptar_invitacion()`. `producto_compartido` (usuario_id, banco, producto_nombre): lo edita
+  el dueño.
 
 ### `publicacion` (solo Supabase; la escribe la Lambda)
 usuario_id, tabla, publicado_en (timestamptz), filas. Clave (usuario_id, tabla). La app muestra "actualizado a las…".
@@ -211,6 +223,11 @@ de los últimos 3 meses anteriores con `resumen_mensual.ingresos > 0`.
 | caja_resumen | usuario_id, ciclo |
 | pago_fijo, deuda_manual, sobre, anotacion, compra, compra_item | su uuid propio |
 | pago_marcado | usuario_id, ciclo, clave |
+| producto_compartido | usuario_id, banco, producto_nombre |
+| conciliacion | usuario_id, ambito, sujeto |
+| foto_balance | usuario_id, fecha |
+| solicitud_actualizacion | solicitud_id (una activa por usuario) |
+| hogar / miembro_hogar / invitacion_hogar | hogar_id / usuario_id / hogar_id, email |
 
 Supabase valida categorías y valores de `tipo_flujo`, `producto_tipo`, `estado`, `tipo` y `moneda` con checks: un valor fuera
 del catálogo hace fallar la publicación de ese usuario (su transacción se revierte y quedan los datos anteriores).

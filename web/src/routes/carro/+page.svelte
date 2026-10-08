@@ -65,7 +65,9 @@
 		<section class="tarjeta carro">
 			<div class="tarjeta-cabecera">
 				<h2>{abierta.lugar}</h2>
-				<span class="tenue">{sobreAbierta?.sobre.nombre ?? 'Sin sobre'}</span>
+				<span class="tenue"
+					>{sobreAbierta?.sobre.nombre ?? 'Sin sobre'}{#if abierta.creado_por && data.otros[abierta.creado_por]}{` · la abrió ${data.otros[abierta.creado_por]}`}{/if}</span
+				>
 			</div>
 
 			<form method="POST" action="?/item" use:enhance={agregar} class="agregar">
@@ -204,7 +206,9 @@
 						<details>
 							<summary>
 								<span class="nombre">{c.lugar}</span>
-								<span class="tenue">{fechaHora(c.cerrada ?? c.creada).slice(0, 10)} · {c.items.length} productos</span>
+								<span class="tenue"
+									>{fechaHora(c.cerrada ?? c.creada).slice(0, 10)} · {c.items.length} productos{#if c.creado_por && data.otros[c.creado_por]}{` · por ${data.otros[c.creado_por]}`}{/if}</span
+								>
 								<strong class="num">{clp(totalCompra(c.items))}</strong>
 							</summary>
 							<ul class="items">

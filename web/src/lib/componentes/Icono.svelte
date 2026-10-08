@@ -34,7 +34,8 @@
 		salida: 'm22 17-8.5-8.5-5 5L2 7M16 17h6v-6',
 		fijos: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6h4M8 2h8',
 		sobre: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM12 9v6M9 12h6',
-		deshacer: 'M3 7v6h6M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13'
+		deshacer: 'M3 7v6h6M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13',
+		personas: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'
 	};
 	export type NombreIcono = keyof typeof TRAZOS;
 </script>

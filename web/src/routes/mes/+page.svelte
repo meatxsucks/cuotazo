@@ -9,6 +9,7 @@
 	import { clp, mesCorto, mesLargo } from '$lib/formato';
 
 	let { data, form } = $props();
+	const puedeEditar = $derived(data.rol !== 'miembro');
 
 	const dia = (iso: string | null) => (iso ? `${Number(iso.slice(8, 10))} ${mesCorto(iso)}` : 'sin fecha');
 	const pct = (n: number) => (data.disponible && data.balance.ingreso > 0 ? `${Math.round((100 * n) / data.balance.ingreso)}%` : '');
@@ -88,7 +89,7 @@
 						te faltan <strong class="num negativo">{clp(-b.cierre)}</strong>, que terminarían en tarjeta.
 					{/if}
 				</p>
-			{:else if !data.enCurso}
+			{:else if !data.enCurso && puedeEditar}
 				<details class="ajuste">
 					<summary>Cambiar sueldo esperado</summary>
 					<form method="POST" action="?/ingreso" use:enhance class="fila-form">
@@ -177,6 +178,7 @@
 									<span class="negativo">Te pasaste {clp(-s.queda)}</span>
 								{/if}
 							</p>
+							{#if puedeEditar}
 							<details class="ajuste">
 								<summary>Cambiar</summary>
 								<form method="POST" action="?/sobre" use:enhance class="fila-form">
@@ -185,6 +187,7 @@
 									<button class="boton" type="submit">Guardar</button>
 								</form>
 							</details>
+							{/if}
 						</div>
 					</li>
 				{:else}

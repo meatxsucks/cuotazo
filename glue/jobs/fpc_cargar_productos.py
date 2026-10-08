@@ -54,9 +54,8 @@ def completar_creditos(s3, bucket, j, anteriores):
 
 
 def tiene_datos(j):
-    """Indica si la corrida trae movimientos o productos de crédito."""
-    movs = sum(len(c.get("movimientos") or []) for c in j.get("cuentas") or [])
-    return movs > 0 or bool(j.get("tarjetas")) or bool(j.get("creditos"))
+    """Indica si la corrida es completa: los tres bancos tienen cuenta, así que sin movimientos de cuenta la corrida falló a medias."""
+    return sum(len(c.get("movimientos") or []) for c in j.get("cuentas") or []) > 0
 
 
 args = argumentos(

@@ -8,12 +8,19 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const d = locals.datos;
-	const [sobres, compras, estados, frecuentes] = await Promise.all([
+	const [sobres, compras, estados, frecuentes, hogar] = await Promise.all([
 		d.sobres(),
 		d.compras(sumarDias(hoyChile(), -45)),
 		d.estadoSobres(),
-		d.itemsFrecuentes().catch(() => [])
+		d.itemsFrecuentes().catch(() => []),
+		d.miHogar().catch(() => null)
 	]);
+	// Nombres de los demás del hogar, para mostrar quién hizo cada compra
+	const otros = Object.fromEntries(
+		[hogar?.titular, ...(hogar?.miembros ?? [])]
+			.filter((p) => p && p.usuario_id !== hogar?.yo?.usuario_id)
+			.map((p) => [p!.usuario_id, p!.nombre ?? 'Tu hogar'])
+	);
 	if (!sobres || !compras) return { disponible: false as const };
 	return {
 		disponible: true as const,
@@ -21,7 +28,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		abierta: compras.find((c) => c.abierta) ?? null,
 		recientes: compras.filter((c) => !c.abierta).slice(0, 15),
 		lugares: [...new Set(compras.map((c) => c.lugar))].slice(0, 20),
-		frecuentes
+		frecuentes,
+		otros
 	};
 };
 

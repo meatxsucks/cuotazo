@@ -10,6 +10,7 @@
 	import { clp, MESES_CORTOS, mesLargo } from '$lib/formato';
 
 	let { data, form } = $props();
+	const puedeEditar = $derived(data.rol !== 'miembro');
 
 	let editando = $state<string | null>(null);
 	let creando = $state(false);
@@ -102,7 +103,7 @@
 			<h1>Pagos fijos</h1>
 			<p class="subtitulo">Lo que pagas todos los meses aunque no pase por tus tarjetas</p>
 		</div>
-		{#if data.pagos && !creando}
+		{#if data.pagos && !creando && puedeEditar}
 			<button class="boton primario" type="button" onclick={() => ((creando = true), (editando = null))}><Icono nombre="mas_simple" tam={16} /> Nuevo pago</button>
 		{/if}
 	</header>
@@ -157,15 +158,17 @@
 									</span>
 								</span>
 								<span class="num valor">{clp(p.monto)}</span>
-								<button class="boton fantasma icono" type="button" aria-label="Editar {p.nombre}" onclick={() => ((editando = editando === p.pago_fijo_id ? null : p.pago_fijo_id), (creando = false))}>
-									<Icono nombre="editar" tam={17} />
-								</button>
-								<form method="POST" action="?/borrar" use:enhance={envio}>
-									<input type="hidden" name="pago_fijo_id" value={p.pago_fijo_id} />
-									<button class="boton fantasma icono" type="submit" aria-label="Borrar {p.nombre}" onclick={(e) => { if (!confirm(`¿Borrar ${p.nombre}?`)) e.preventDefault(); }}>
-										<Icono nombre="borrar" tam={17} />
+								{#if puedeEditar}
+									<button class="boton fantasma icono" type="button" aria-label="Editar {p.nombre}" onclick={() => ((editando = editando === p.pago_fijo_id ? null : p.pago_fijo_id), (creando = false))}>
+										<Icono nombre="editar" tam={17} />
 									</button>
-								</form>
+									<form method="POST" action="?/borrar" use:enhance={envio}>
+										<input type="hidden" name="pago_fijo_id" value={p.pago_fijo_id} />
+										<button class="boton fantasma icono" type="submit" aria-label="Borrar {p.nombre}" onclick={(e) => { if (!confirm(`¿Borrar ${p.nombre}?`)) e.preventDefault(); }}>
+											<Icono nombre="borrar" tam={17} />
+										</button>
+									</form>
+								{/if}
 							</div>
 							{#if editando === p.pago_fijo_id}
 								{@render formulario(p)}
