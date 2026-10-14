@@ -88,6 +88,28 @@ export interface Conciliacion {
 	revisado: string | null;
 }
 
+// Compras nuevas con tarjeta y giros de la línea por ciclo de sueldo (vista uso_credito)
+export interface UsoCredito {
+	ciclo: string;
+	ciclo_inicio: string;
+	ciclo_fin: string;
+	compras_tarjeta: number;
+	n_compras: number;
+	giros_linea: number;
+	n_giros: number;
+}
+
+export type TipoTopeCredito = 'tarjetas' | 'linea';
+
+export interface TopeCredito {
+	tipo: TipoTopeCredito;
+	/** tope del ciclo en que se fijó */
+	inicial: number;
+	meta: number;
+	bajada_pct: number;
+	desde_ciclo: string;
+}
+
 export interface ProductoCompartido {
 	banco: string;
 	producto_nombre: string;
@@ -575,4 +597,7 @@ export interface FuenteDatos {
 	resultadoMensual(desde: string): Promise<ResultadoMes[] | null>;
 	libro(banco: string, producto: string, limite: number): Promise<FilaLibro[] | null>;
 	conciliacion(): Promise<Conciliacion[] | null>;
+	usoCredito(): Promise<UsoCredito[] | null>;
+	topesCredito(): Promise<TopeCredito[] | null>;
+	guardarTopeCredito(t: TopeCredito): Promise<void>;
 }

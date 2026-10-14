@@ -24,6 +24,8 @@ import type {
 	Producto,
 	ProductoCompartido,
 	ResultadoMes,
+	TopeCredito,
+	UsoCredito,
 	Sobre
 } from './tipos';
 
@@ -423,6 +425,26 @@ export function crearFuenteSupabase(supabase: SupabaseClient): FuenteDatos {
 					};
 				});
 			return [...banco, ...deSaldos];
+		},
+		async usoCredito() {
+			const filas = await opcional<Record<string, unknown>>((a, b) => db.from('uso_credito').select('*').order('ciclo', { ascending: false }).range(a, b));
+			return (
+				filas?.map((r) => ({
+					...(r as unknown as UsoCredito),
+					compras_tarjeta: num(r.compras_tarjeta) ?? 0,
+					giros_linea: num(r.giros_linea) ?? 0,
+					n_compras: num(r.n_compras) ?? 0,
+					n_giros: num(r.n_giros) ?? 0
+				})) ?? null
+			);
+		},
+		async topesCredito() {
+			const filas = await opcional<Record<string, unknown>>((a, b) => db.from('tope_credito').select('tipo, inicial, meta, bajada_pct, desde_ciclo').range(a, b));
+			return filas?.map((r) => ({ ...(r as unknown as TopeCredito), inicial: num(r.inicial) ?? 0, meta: num(r.meta) ?? 0, bajada_pct: num(r.bajada_pct) ?? 0 })) ?? null;
+		},
+		async guardarTopeCredito(t) {
+			const { error } = await db.from('tope_credito').upsert({ usuario_id: await miId(), ...t, actualizado: new Date().toISOString() }, { onConflict: 'usuario_id,tipo' });
+			revisar(error);
 		},
 		async itemsFrecuentes() {
 			const filas =

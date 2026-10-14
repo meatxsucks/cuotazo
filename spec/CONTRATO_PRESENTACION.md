@@ -116,6 +116,11 @@ Todas con `usuario_id` por defecto `finanzas.mi_usuario_id()` y RLS de lectura y
 - `solicitud_actualizacion`: origen (`app`, `programada`), estado, pasos (jsonb paso → estado), detalle, creada, iniciada,
   terminada. Se crea con `pedir_actualizacion()`; la escribe el agente del equipo.
 - `foto_balance`: fecha, activos, pasivos, detalle (jsonb de partidas); la escribe `tomar_foto_balance()`.
+- `uso_credito` (publicada desde `presentacion.uso_credito`, por ciclo de sueldo): compras_tarjeta (compras nuevas con
+  tarjeta, las en cuotas por su total; `monto_total_compra` viene positivo) y giros_linea (lo que la cuenta sacó de la línea,
+  detectado en `dw.caja_movimiento.giro_linea`), con sus conteos.
+- `tope_credito` (lo edita el dueño): tipo (`tarjetas`, `linea`), inicial (tope del ciclo en que se fijó), meta, bajada_pct,
+  desde_ciclo. El tope de cada ciclo baja `bajada_pct` por ciclo hasta la meta (`web/src/lib/credito.ts`).
 - Vistas: `balance_actual`, `resultado_mensual`, `libro` (saldo corrido en cuentas) y `conciliacion_saldos`
   ([[ADR-011_Actualizacion_Y_Contabilidad]]).
 - Hogar ([[ADR-010_Hogar_Compartido]]): `hogar` (titular_id único), `miembro_hogar` (usuario_id único), `invitacion_hogar`
@@ -227,6 +232,8 @@ de los últimos 3 meses anteriores con `resumen_mensual.ingresos > 0`.
 | conciliacion | usuario_id, ambito, sujeto |
 | foto_balance | usuario_id, fecha |
 | solicitud_actualizacion | solicitud_id (una activa por usuario) |
+| uso_credito | usuario_id, ciclo |
+| tope_credito | usuario_id, tipo |
 | hogar / miembro_hogar / invitacion_hogar | hogar_id / usuario_id / hogar_id, email |
 
 Supabase valida categorías y valores de `tipo_flujo`, `producto_tipo`, `estado`, `tipo` y `moneda` con checks: un valor fuera

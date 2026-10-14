@@ -6,6 +6,7 @@ import type {
 	DeudaCuotaMes,
 	Hogar,
 	ProductoCompartido,
+	TopeCredito,
 	DeudaManual,
 	PagoFijo,
 	Sobre,
@@ -21,6 +22,7 @@ import type {
 	TipoFlujo,
 	Usuario
 } from '$lib/datos/tipos';
+import { cicloDe } from '$lib/caja';
 import {
 	conDia,
 	diaSemana,
@@ -55,6 +57,7 @@ export interface DatosDemo {
 	hogar: Hogar;
 	compartidos: ProductoCompartido[];
 	actualizacion: Actualizacion | null;
+	topesCredito: TopeCredito[];
 }
 
 const USUARIO_ID = '00000000-0000-4000-8000-000000000001';
@@ -452,7 +455,8 @@ export function generarDatosDemo(hoy = hoyChile()): DatosDemo {
 			invitaciones: []
 		},
 		compartidos: [CC, CUENTA_VISTA, VISA].map((p) => ({ banco: p.banco, producto_nombre: p.producto_nombre })),
-		actualizacion: null
+		actualizacion: null,
+		topesCredito: [{ tipo: 'tarjetas', inicial: 600_000, meta: 350_000, bajada_pct: 10, desde_ciclo: cicloDe(hoy).ciclo }]
 	};
 }
 

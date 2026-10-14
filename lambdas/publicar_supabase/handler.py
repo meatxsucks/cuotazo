@@ -36,6 +36,7 @@ TABLAS = {
         "monto_financiado_linea",
     ],
     "conciliacion": ["usuario_id", "ambito", "sujeto", "detalle", "cuadra", "revisado"],
+    "uso_credito": ["usuario_id", "ciclo", "ciclo_inicio", "ciclo_fin", "compras_tarjeta", "n_compras", "giros_linea", "n_giros"],
 }
 
 secretos = boto3.client("secretsmanager")

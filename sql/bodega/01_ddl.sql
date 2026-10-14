@@ -341,6 +341,7 @@ CREATE OR REPLACE VIEW presentacion.usuario AS
 SELECT usuario_id, nombre_visible
 FROM dw.dim_usuario;
 
+DROP VIEW IF EXISTS presentacion.uso_credito;
 DROP VIEW IF EXISTS presentacion.caja_resumen;
 DROP VIEW IF EXISTS presentacion.caja_ciclo;
 DROP VIEW IF EXISTS dw.compromiso;
@@ -409,7 +410,8 @@ SELECT c.usuario_id,
        END AS grupo,
        c.monto,
        fi.movimiento_id IS NOT NULL AS financiado_con_linea,
-       CAST(coalesce(fi.monto_financiado, 0) AS BIGINT) AS monto_financiado_linea
+       CAST(coalesce(fi.monto_financiado, 0) AS BIGINT) AS monto_financiado_linea,
+       g.movimiento_id IS NOT NULL AS giro_linea
 FROM cuenta c
 CROSS JOIN LATERAL (SELECT dw.ciclo_de(c.fecha, c.dia_corte_sueldo) AS ciclo) k
 LEFT JOIN giro g ON g.usuario_id = c.usuario_id AND g.movimiento_id = c.movimiento_id
@@ -719,3 +721,38 @@ LEFT JOIN comprometido m ON m.usuario_id = c.usuario_id;
 CREATE OR REPLACE VIEW presentacion.conciliacion AS
 SELECT usuario_id, ambito, sujeto, detalle, cuadra, revisado
 FROM dw.conciliacion;
+
+CREATE VIEW presentacion.uso_credito AS
+WITH tarjeta AS (
+    SELECT f.usuario_id, dw.ciclo_de(f.fecha, u.dia_corte_sueldo) AS ciclo,
+           sum(CASE WHEN f.monto_total_compra IS NOT NULL THEN abs(f.monto_total_compra) ELSE -f.monto END) AS compras,
+           count(*) FILTER (WHERE f.monto < 0) AS n
+    FROM dw.fact_movimiento f
+    JOIN dw.dim_producto p ON p.usuario_id = f.usuario_id AND p.producto_id = f.producto_id AND p.producto_tipo = 'tarjeta'
+    JOIN dw.dim_usuario u ON u.usuario_id = f.usuario_id
+    WHERE f.tipo_flujo = 'gasto' AND coalesce(f.cuota_actual, 1) <= 1
+    GROUP BY 1, 2
+),
+linea AS (
+    SELECT usuario_id, ciclo, sum(monto) AS giros, count(*) AS n
+    FROM dw.caja_movimiento
+    WHERE giro_linea
+    GROUP BY 1, 2
+),
+ciclos AS (
+    SELECT usuario_id, ciclo FROM tarjeta
+    UNION
+    SELECT usuario_id, ciclo FROM linea
+)
+SELECT c.usuario_id,
+       c.ciclo,
+       dw.corte_mes((c.ciclo - INTERVAL '1 month')::date, u.dia_corte_sueldo) AS ciclo_inicio,
+       dw.corte_mes(c.ciclo, u.dia_corte_sueldo) - 1 AS ciclo_fin,
+       CAST(coalesce(t.compras, 0) AS BIGINT) AS compras_tarjeta,
+       CAST(coalesce(t.n, 0) AS INTEGER) AS n_compras,
+       CAST(coalesce(l.giros, 0) AS BIGINT) AS giros_linea,
+       CAST(coalesce(l.n, 0) AS INTEGER) AS n_giros
+FROM ciclos c
+JOIN dw.dim_usuario u ON u.usuario_id = c.usuario_id
+LEFT JOIN tarjeta t ON t.usuario_id = c.usuario_id AND t.ciclo = c.ciclo
+LEFT JOIN linea l ON l.usuario_id = c.usuario_id AND l.ciclo = c.ciclo;

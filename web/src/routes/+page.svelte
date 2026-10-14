@@ -4,13 +4,14 @@
 	import BarraUso from '$lib/componentes/BarraUso.svelte';
 	import Icono from '$lib/componentes/Icono.svelte';
 	import SelectorMes from '$lib/componentes/SelectorMes.svelte';
+	import TopesCredito from '$lib/componentes/TopesCredito.svelte';
 	import Vacio from '$lib/componentes/Vacio.svelte';
 	import { aPagarTarjeta, GRUPOS_CAJA, nombreGrupo } from '$lib/caja';
 	import { colorCategoria, nombreCategoria } from '$lib/categorias';
 	import { diasEnMes, diasEntre, hoyChile, mesActual, parametroMes, sumarMeses } from '$lib/fechas';
 	import { clp, diaLargo, fecha, fechaHora, mesLargo, nombreBanco, porcentaje } from '$lib/formato';
 
-	let { data } = $props();
+	let { data, form } = $props();
 
 	const r = $derived(data.actual);
 	const alerta = $derived(!!r && r.alerta_negativo && r.meses_completos && data.mes === mesActual());
@@ -145,6 +146,10 @@
 			{/if}
 		</section>
 	</div>
+
+	{#if data.topesCredito}
+		<TopesCredito ciclo={data.topesCredito.ciclo} filas={data.topesCredito.filas} hoy={data.hoy} editable={data.rol !== 'miembro'} error={form?.error ?? null} />
+	{/if}
 
 	{#if rotativas.length}
 		<section class="tarjeta">

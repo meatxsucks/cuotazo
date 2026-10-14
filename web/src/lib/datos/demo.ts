@@ -1,4 +1,4 @@
-import { compromisosHastaSueldo, proximoSueldo, unirDeudas } from '$lib/caja';
+import { cicloDe, compromisosHastaSueldo, proximoSueldo, unirDeudas } from '$lib/caja';
 import { estadoSobres } from '$lib/deudas/presupuesto';
 import { frecuentes, pagosCicloDemo, totalCompra } from '$lib/mes';
 import * as calculo from '$lib/demo/calculos';
@@ -273,6 +273,28 @@ export const fuenteDemo: FuenteDatos = {
 			if (saldo != null) saldo -= m.monto;
 			return fila;
 		});
+	},
+	async usoCredito() {
+		const d = datos();
+		const porCiclo = new Map<string, { ciclo: string; ciclo_inicio: string; ciclo_fin: string; compras_tarjeta: number; n_compras: number; giros_linea: number; n_giros: number }>();
+		for (const m of d.movimientos) {
+			if (m.producto_tipo !== 'tarjeta' || m.tipo_flujo !== 'gasto' || (m.cuota_actual ?? 1) > 1) continue;
+			const c = cicloDe(m.fecha);
+			const fila = porCiclo.get(c.ciclo) ?? { ciclo: c.ciclo, ciclo_inicio: c.inicio, ciclo_fin: c.fin, compras_tarjeta: 0, n_compras: 0, giros_linea: 0, n_giros: 0 };
+			fila.compras_tarjeta += m.monto_total_compra != null ? Math.abs(m.monto_total_compra) : -m.monto;
+			fila.n_compras++;
+			porCiclo.set(c.ciclo, fila);
+		}
+		const filas = [...porCiclo.values()].sort((a, b) => b.ciclo.localeCompare(a.ciclo));
+		filas.forEach((f, i) => ((f.giros_linea = [62_000, 140_000, 95_000][i] ?? 0), (f.n_giros = f.giros_linea ? 3 : 0)));
+		return filas;
+	},
+	async topesCredito() {
+		return copia(datos().topesCredito);
+	},
+	async guardarTopeCredito(t) {
+		const d = datos();
+		d.topesCredito = [...d.topesCredito.filter((x) => x.tipo !== t.tipo), copia(t)];
 	},
 	async conciliacion() {
 		const hoy = hoyChile();

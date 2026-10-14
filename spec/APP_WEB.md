@@ -8,7 +8,7 @@ sintéticos (`web/src/lib/demo/`), sin login.
 
 | Ruta | Para qué | Decisión |
 |---|---|---|
-| `/` Resumen | Disponible hoy, lo que viene hasta el cierre del ciclo, tarjetas con fecha de pago, caja del ciclo, consumo del mes y sobres | [[ADR-007_Caja_Por_Ciclo]] |
+| `/` Resumen | Disponible hoy, lo que viene hasta el cierre del ciclo, topes de crédito del ciclo (tarjetas y línea), tarjetas con fecha de pago, caja del ciclo, consumo del mes y sobres | [[ADR-007_Caja_Por_Ciclo]] |
 | `/mes` Mes | Balance del ciclo (sueldo − pagos − sobres), qué hacer con la plata de hoy, pagos con estado y marca manual, sobres con ritmo diario; pestaña del próximo ciclo | [[ADR-009_Mes_Y_Carro]] |
 | `/carro` Carro | Compra abierta con productos, total contra el sobre, productos frecuentes; al terminar anota en el sobre | [[ADR-009_Mes_Y_Carro]] |
 | `/anotar` Sobres | Crear y ordenar sobres; gasto suelto sin detalle | |

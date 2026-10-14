@@ -97,3 +97,5 @@ personal de cada entrada vive en `spec/privado/` (ignorado por git).
 - `fpc_cuadrar` guarda sus verificaciones en `dw.conciliacion`; se publican en Supabase (Lambda redesplegada).
 - App: botón Actualizar con avance por banco en el encabezado y pantalla Contabilidad (balance, resultados, libro y conciliación). Desplegada.
 - Diagnóstico de red: el router anuncia ruta IPv6 sin dirección; por eso Falabella falla de forma intermitente (ver [[OPERACION]]).
+- Topes de crédito en el Resumen: `presentacion.uso_credito` (compras nuevas con tarjeta y giros de la línea por ciclo; `dw.caja_movimiento` expone `giro_linea`) publicada en Supabase; migración `0011_topes_credito.sql` (uso y topes, con RLS de hogar). El tope baja un porcentaje cada ciclo hasta la meta; tarjeta del Resumen con barra, saldo por día y tope del próximo ciclo. Corregido el signo de las compras en cuotas (`monto_total_compra` viene positivo). Probado en demo guardando un tope; desplegado.
+- Copias `*-safeBackup-*` que OneDrive sincronizó desde otro equipo se movieron fuera del repo (`~/.fpc/respaldos-onedrive/`): una de `providers.tf` hacía fallar Terraform.
