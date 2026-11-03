@@ -41,9 +41,9 @@ def obtener_secreto(nombre):
 def conectar(secreto_bodega, host=None):
     """Abre una conexión psycopg a la bodega; permite reemplazar el host cuando se ejecuta fuera de la red de floci."""
     s = obtener_secreto(secreto_bodega)
-    return psycopg.connect(
-        host=host or s["host"], port=s["port"], dbname=s["dbname"], user=s["username"], password=s["password"]
-    )
+    # Fuera de la red de floci el proxy de RDS sale por FPC_PUERTO_UI si otro floci ocupa el 7001
+    puerto = int(os.environ.get("FPC_PUERTO_UI") or s["port"]) if host else s["port"]
+    return psycopg.connect(host=host or s["host"], port=puerto, dbname=s["dbname"], user=s["username"], password=s["password"])
 
 
 # Sentencias de un archivo SQL con parámetros

@@ -22,7 +22,8 @@
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.2.8",
-		"@supabase/ssr": "^0.12.7",
-		"@supabase/supabase-js": "^2.117.2"
+		"@neon/auth": "^0.8.2",
+		"@neondatabase/serverless": "^1.2.0",
+		"@supabase/postgrest-js": "^2.117.2"
 	}
 }

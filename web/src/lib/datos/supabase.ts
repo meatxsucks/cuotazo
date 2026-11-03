@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { PostgrestClient } from '@supabase/postgrest-js';
 import { unirDeudas } from '$lib/caja';
 import { frecuentes } from '$lib/mes';
 import { ErrorDuplicado, ErrorNoDisponible } from './index';
@@ -82,8 +82,7 @@ function limpiarBusqueda(t: string): string {
 }
 
 // RLS resuelve el usuario desde auth.uid(); aquí no se filtra por usuario_id
-export function crearFuenteSupabase(supabase: SupabaseClient): FuenteDatos {
-	const db = supabase.schema('finanzas');
+export function crearFuenteSupabase(db: PostgrestClient<any, any, 'finanzas'>): FuenteDatos {
 	let usuarioId: string | null = null;
 
 	function movimientos(f: FiltroMovimientos, conteo: boolean) {

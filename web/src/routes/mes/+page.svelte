@@ -18,6 +18,17 @@
 	const pagos = $derived(
 		data.disponible ? [...data.pagos].sort((a, b) => ORDEN[a.estado] - ORDEN[b.estado] || (a.fecha ?? '9').localeCompare(b.fecha ?? '9')) : []
 	);
+	const GRUPOS: [string, string[]][] = [
+		['Cuentas', ['pago_fijo']],
+		['Tarjetas', ['tarjeta', 'linea']],
+		['Créditos', ['dividendo', 'credito', 'deuda_manual']]
+	];
+	const grupos = $derived(
+		GRUPOS.map(([nombre, origenes]) => {
+			const filas = pagos.filter((p) => origenes.includes(p.origen));
+			return { nombre, filas, total: filas.reduce((t, p) => t + p.comprometido, 0), falta: filas.reduce((t, p) => t + p.por_pagar, 0) };
+		}).filter((g) => g.filas.length)
+	);
 	const diasCierre = $derived(data.disponible ? Math.max(1, diasEntre(data.hoy, data.ciclo.fin) + 1) : 1);
 
 	function textoEstado(p: PagoCiclo): string {
@@ -124,8 +135,10 @@
 				<span class="tenue num">{b.porPagar > 0 ? `faltan ${clp(b.porPagar)}` : 'todo pagado'}</span>
 			</div>
 			<BarraProgreso valor={b.pagado} limite={Math.max(b.pagos, 1)} />
+			{#each grupos as g (g.nombre)}
+			<h3 class="grupo">{g.nombre} <span class="tenue num">{clp(g.total)}{g.falta > 0 && g.falta < g.total ? ` · faltan ${clp(g.falta)}` : g.falta === 0 ? ' · pagado' : ''}</span></h3>
 			<ul class="pagos">
-				{#each pagos as p (p.clave)}
+				{#each g.filas as p (p.clave)}
 					<li class={p.estado}>
 						<div class="que">
 							<p class="nombre">{p.nombre}</p>
@@ -148,10 +161,11 @@
 							</form>
 						{/if}
 					</li>
-				{:else}
-					<li class="tenue">No hay pagos conocidos en este ciclo.</li>
 				{/each}
 			</ul>
+			{:else}
+				<p class="tenue">No hay pagos conocidos en este ciclo.</p>
+			{/each}
 			<p class="tenue nota">Tarjetas y créditos se marcan solos cuando el banco muestra el pago; las cuentas las marcas tú. <a href="/pagos-fijos">Editar pagos fijos</a></p>
 		</section>
 
@@ -276,6 +290,14 @@
 	.plan li.falta .marca {
 		background: var(--negativo-suave);
 		color: var(--negativo);
+	}
+	.grupo {
+		display: flex;
+		justify-content: space-between;
+		gap: 10px;
+		margin-top: 14px;
+		font-size: 0.85rem;
+		font-weight: 700;
 	}
 	.pagos,
 	.sobres {

@@ -3,8 +3,8 @@ services:
     image: floci/floci:latest
     container_name: fpc-floci
     ports:
-      - "4566:4566"
-      - "7001:7001"
+      - "${FPC_PUERTO:-4566}:4566"
+      - "${FPC_PUERTO_UI:-7001}:7001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.fpc/floci-data:/data

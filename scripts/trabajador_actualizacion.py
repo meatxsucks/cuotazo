@@ -26,8 +26,8 @@ def registro(texto):
 
 
 def url_supabase():
-    """Lee la cadena de Postgres de Supabase desde el Llavero."""
-    r = subprocess.run(["security", "find-generic-password", "-s", "fpc", "-a", "SUPABASE_DB_URL", "-w"],
+    """Lee la cadena de Postgres de Neon desde el Llavero."""
+    r = subprocess.run(["security", "find-generic-password", "-s", "fpc", "-a", "NEON_DB_URL", "-w"],
                        capture_output=True, text=True, check=True)
     return r.stdout.strip()
 
@@ -35,11 +35,13 @@ def url_supabase():
 def entorno():
     """Variables para los extractores, la carga y la AWS CLI contra floci."""
     env = dict(os.environ, PATH=PATH, AWS_ACCESS_KEY_ID="test", AWS_SECRET_ACCESS_KEY="test",
-               AWS_DEFAULT_REGION="us-east-1", AWS_ENDPOINT_URL="http://localhost:4566")
+               AWS_DEFAULT_REGION="us-east-1")
     for linea in (RAIZ / ".env").read_text().splitlines():
         if "=" in linea and not linea.lstrip().startswith("#"):
             clave, valor = linea.split("=", 1)
             env[clave.strip()] = valor.strip()
+    # Otro proyecto con floci puede ocupar el 4566: FPC_PUERTO (en .env) mueve el de Cuotazo
+    env["AWS_ENDPOINT_URL"] = f"http://localhost:{env.get('FPC_PUERTO', '4566')}"
     return env
 
 
@@ -106,14 +108,16 @@ def solicitud_pendiente(cur, usuario):
         where usuario_id = %s and estado = 'corriendo' and iniciada < now() - interval '40 minutes'
     """, (usuario,))
     ahora = dt.datetime.now(ZONA)
-    # La corrida diaria parte desde las 7:00; si el equipo estaba apagado o dormido, apenas despierte
+    # La corrida diaria parte desde las 7:00; si el equipo estaba dormido, apenas despierte, y si falla se reintenta cada 30 minutos
     if ahora.hour >= HORA_PROGRAMADA:
         cur.execute("""
             insert into finanzas.solicitud_actualizacion (usuario_id, origen)
             select %s, 'programada'
             where not exists (select 1 from finanzas.solicitud_actualizacion
-                              where usuario_id = %s and origen = 'programada'
-                                and (creada at time zone 'America/Santiago')::date = %s)
+                              where usuario_id = %s
+                                and (creada at time zone 'America/Santiago')::date = %s
+                                and (estado in ('ok', 'parcial', 'pendiente', 'corriendo')
+                                     or (origen = 'programada' and creada > now() - interval '30 minutes')))
             on conflict do nothing
         """, (usuario, usuario, ahora.date()))
     cur.execute("""
