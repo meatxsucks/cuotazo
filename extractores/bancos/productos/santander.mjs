@@ -131,6 +131,8 @@ async function iniciarSesion(pagina, rut, password) {
 
   await pagina.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
   await espera(8000);
+  // Un login lento deja el formulario a la vista y se confundía con segundo factor: espera hasta 30 s más antes de juzgar
+  for (let i = 0; i < 6 && (await iframe.isVisible().catch(() => false)); i++) await espera(5000);
   const texto = await textoVisible(pagina);
   if (RECHAZO.test(texto)) {
     bloquear("santander", "rechazo de credenciales");

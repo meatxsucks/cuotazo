@@ -13,11 +13,12 @@ pip="${PIP:-$raiz/.venv/bin/pip}"
 rm -rf "$destino"
 mkdir -p "$destino"
 
-# Dependencias binarias para Linux arm64, sin boto3 (viene en el runtime)
+case "$(uname -m)" in x86_64) PLAT="--platform manylinux2014_x86_64 --platform manylinux_2_28_x86_64";; *) PLAT="--platform manylinux2014_aarch64 --platform manylinux_2_28_aarch64";; esac
+# Dependencias binarias para la arquitectura del equipo, sin boto3 (viene en el runtime)
 if [ -f "$origen/requirements.txt" ]; then
   "$pip" install --quiet --disable-pip-version-check --no-compile \
     --requirement "$origen/requirements.txt" --target "$destino" \
-    --platform manylinux2014_aarch64 --platform manylinux_2_28_aarch64 \
+    $PLAT \
     --implementation cp --python-version 3.12 --only-binary=:all:
 fi
 

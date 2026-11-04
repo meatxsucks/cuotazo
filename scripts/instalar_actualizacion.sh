@@ -4,6 +4,15 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+if [[ "$(uname)" == "Linux" ]]; then
+  D="$HOME/.config/systemd/user"
+  if [[ "${1:-}" == "--quitar" ]]; then systemctl --user disable --now cuotazo-actualizacion.timer; rm -f "$D"/cuotazo-actualizacion.*; echo "agente quitado"; exit 0; fi
+  mkdir -p "$D" "$HOME/.fpc/logs"
+  for u in service timer; do sed "s#__RAIZ__#$(pwd)#g" scripts/systemd/cuotazo-actualizacion.$u > "$D/cuotazo-actualizacion.$u"; done
+  systemctl --user daemon-reload && systemctl --user enable --now cuotazo-actualizacion.timer
+  echo "timer instalado (cada minuto); log: journalctl --user -u cuotazo-actualizacion"
+  exit 0
+fi
 ETIQUETA=cl.cuotazo.actualizacion
 DESTINO="$HOME/Library/LaunchAgents/$ETIQUETA.plist"
 

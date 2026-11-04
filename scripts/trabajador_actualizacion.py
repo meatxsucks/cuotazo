@@ -57,7 +57,7 @@ def correr(cmd, env, cwd=RAIZ, limite=900):
 def asegurar_floci(env):
     """Levanta Docker y floci si están apagados; True si quedaron arriba."""
     if correr(["docker", "info"], env, limite=30)[0] != 0:
-        subprocess.run(["open", "-a", "Docker"], env=env)
+        subprocess.run(["open", "-a", "Docker"] if sys.platform == "darwin" else ["systemctl", "start", "docker"], env=env)
         for _ in range(40):
             time.sleep(3)
             if correr(["docker", "info"], env, limite=30)[0] == 0:

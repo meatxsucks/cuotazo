@@ -1,0 +1,8 @@
+[Unit]
+Description=Cuotazo: atiende el botón Actualizar y corre la actualización diaria
+
+[Service]
+Type=oneshot
+WorkingDirectory=__RAIZ__
+Environment=PATH=__RAIZ__/scripts/linux:/usr/local/bin:/usr/bin:/bin
+ExecStart=__RAIZ__/.venv/bin/python __RAIZ__/scripts/trabajador_actualizacion.py

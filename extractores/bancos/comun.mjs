@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { chromium } from "playwright-core";
 
-export const CHROME = process.env.CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+export const CHROME = process.env.CHROME_PATH ?? (process.platform === "darwin" ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" : "/usr/bin/google-chrome-stable");
 export const DIR_BLOQUEOS = `${homedir()}/.fpc/bloqueos`;
 export const RECHAZO = /no son v[aá]lid|clave (incorrecta|bloqueada)|rut o clave|credenciales inv[aá]lidas|clave inv[aá]lida|bloquead/i;
 

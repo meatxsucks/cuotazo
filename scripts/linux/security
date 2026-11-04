@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Sustituto de `security find-generic-password -s fpc -a CUENTA -w` de macOS para Linux.
+# Lee ~/.fpc/secretos/CUENTA (modo 600) o, si no existe, el llavero (secret-tool). Sin valor, sale con 44 como el original.
+[[ "$1" == "find-generic-password" ]] || { echo "solo find-generic-password" >&2; exit 2; }
+while getopts "s:a:w" o 2>/dev/null; do case $o in a) cuenta=$OPTARG;; esac; done
+[[ -n "${cuenta:-}" ]] || { shift; while [[ $# -gt 0 ]]; do [[ "$1" == "-a" ]] && cuenta=$2; shift; done; }
+f="$HOME/.fpc/secretos/$cuenta"
+if [[ -f "$f" ]]; then cat "$f"; exit 0; fi
+command -v secret-tool >/dev/null && secret-tool lookup service fpc account "$cuenta" && exit 0
+exit 44

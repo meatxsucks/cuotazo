@@ -1,3 +1,9 @@
+variable "arquitectura_lambda" {
+  type    = string
+  default = "arm64"
+  description = "arm64 en Mac con Apple Silicon; x86_64 en PC Intel/AMD"
+}
+
 variable "supabase_db_url" {
   type        = string
   sensitive   = true
@@ -51,7 +57,7 @@ resource "aws_lambda_function" "publicar_supabase" {
   function_name    = "fpc-publicar-supabase"
   role             = aws_iam_role.lambda.arn
   runtime          = "python3.12"
-  architectures    = ["arm64"]
+  architectures    = [var.arquitectura_lambda]
   handler          = "handler.handler"
   filename         = data.archive_file.publicar_supabase.output_path
   source_code_hash = data.archive_file.publicar_supabase.output_base64sha256
